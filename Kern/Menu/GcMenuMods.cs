@@ -11,9 +11,12 @@ namespace GC.Shared;
 /// <summary>
 /// Ansichten „Mods“ und „Profile“ (Gorduan, 25.10.2026: „Übernehme alle Features von Mod Menu und verbessere sie, dann können
 /// wir die Mod auch rauslassen“). Mods: jede Mod mit Schalter (wirkt nach einem Neustart, über den Vorlader
-/// GC_ModSchalter), Zustand (läuft, aus nach dem Neustart, lädt nicht und warum …), Paket, Update-Hinweis, Seite und Sprung
-/// zu ihren Einstellungen. Profile: welche Mods aus sind, speichern, laden, kopieren, aus der Zwischenablage anlegen.
-/// Unten erscheint „Neu starten“, sobald geänderte Mods einen Neustart brauchen (nur im Hauptmenü).
+/// GC_ModSchalter), Zustand (läuft, aus nach dem Neustart, lädt nicht und warum …), Paket und Sprung zu ihren Einstellungen.
+/// Profile: welche Mods aus sind, speichern, laden, kopieren, aus der Zwischenablage anlegen. Brauchen geänderte Mods einen
+/// Neustart, sagt es die Zeile unten; neu gestartet wird über r2modman.
+/// Entfernt (Gorduan, 25.10.2026, nach der Ablehnung auf Thunderstore: „ist das für uns überhaupt notwendig?“): Knopf „Neu
+/// starten“ (verstecktes PowerShell, Steam-Pfad aus der Registry), Update-Prüfung bei Thunderstore und Nexus und Knopf „Seite“.
+/// r2modman zeigt Updates selbst an.
 /// </summary>
 public sealed partial class GcMenu
 {
@@ -32,7 +35,6 @@ public sealed partial class GcMenu
 		public Text Title = null!;
 		public Text Sub = null!;
 		public Text Status = null!;
-		public Text Update = null!;
 	}
 
 	private sealed class ProfileRow
@@ -53,7 +55,6 @@ public sealed partial class GcMenu
 
 	/// <summary>Zuletzt offene Ansicht, bis zum Spielende gemerkt.</summary>
 	private static View lastView = View.Settings;
-	private static bool updateCheckStarted;
 
 	private View view = View.Settings;
 	private RectTransform? innerRect;
@@ -67,9 +68,7 @@ public sealed partial class GcMenu
 	private InputField? modsSearch;
 	private string modsQuery = "";
 	private Text? modsStatus;
-	private Button? modsCheck;
 	private string modsMessage = "";
-	private bool modsDirty;
 	private readonly List<ModRow> modRows = new();
 	private GameObject? profilesArea;
 	private GameObject? profilesTools;
@@ -82,7 +81,6 @@ public sealed partial class GcMenu
 	private string savePending = "";
 	private float savePendingUntil;
 	private readonly List<ProfileRow> profileRows = new();
-	private Button? restartButton;
 	private bool pausedByKey;
 
 	// ------------------------------------------------------------------ Reiter und Leisten
@@ -201,10 +199,6 @@ public sealed partial class GcMenu
 				label.color = tab == target ? GUIManager.Instance.ValheimOrange : Color.white;
 			}
 		}
-		if (target == View.Mods && !updateCheckStarted && KernPlugin.UpdateCheck != null && KernPlugin.UpdateCheck.Value && ModUpdates.Stale)
-		{
-			StartUpdateCheck(); // einmal je Spielstart, höchstens alle 6 Stunden (Zwischenspeicher)
-		}
 		Refresh();
 	}
 
@@ -216,15 +210,10 @@ public sealed partial class GcMenu
 		}
 	}
 
-	/// <summary>Unten: „Neu starten“, wenn geänderte Mods einen Neustart brauchen; Hinweiszeile je Ansicht.</summary>
+	/// <summary>Hinweiszeile unten je Ansicht; brauchen geänderte Mods einen Neustart, steht dort, wie (über r2modman).</summary>
 	private void RefreshBottom()
 	{
 		bool restart = ModSwitch.RestartNeeded;
-		if (restartButton != null)
-		{
-			SetActive(restartButton.gameObject, restart);
-			restartButton.interactable = ModSwitch.CanRestart;
-		}
 		if (hintLabel != null)
 		{
 			string hint = capturing != null ? ui("capture_hint") : view switch
@@ -235,22 +224,9 @@ public sealed partial class GcMenu
 			};
 			if (restart && capturing == null)
 			{
-				hint = ui(ModSwitch.CanRestart ? "restart_needed" : "restart_mainmenu");
+				hint = ui("restart_needed");
 			}
 			hintLabel.text = hint;
-		}
-	}
-
-	private void OnRestart()
-	{
-		if (!ModSwitch.CanRestart)
-		{
-			return;
-		}
-		if (!ModSwitch.Restart(out string error))
-		{
-			modsMessage = profilesMessage = ui("restart_failed").Replace("$1", error);
-			Refresh();
 		}
 	}
 
@@ -288,8 +264,7 @@ public sealed partial class GcMenu
 				Refresh();
 			}
 		});
-		modsCheck = ToolButton(modsTools.transform, ui("mods_check"), 16f + 360f + 16f + 220f + 12f, 220f, StartUpdateCheck);
-		modsStatus = ToolStatus(modsTools.transform, 16f + 360f + 16f + 220f + 12f + 220f + 16f);
+		modsStatus = ToolStatus(modsTools.transform, 16f + 360f + 16f + 220f + 16f);
 		modsTools.SetActive(false);
 	}
 
@@ -330,19 +305,10 @@ public sealed partial class GcMenu
 		row.Sub = FlowText(texts.transform, "", 13, MutedColor);
 		row.Status = FlowText(texts.transform, "", 14, MutedColor);
 
-		GameObject updateCell = FixedCell(rowGo.transform, "Update", 190f);
-		row.Update = GcUi.CreateLabel(updateCell.transform, "", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, 15, TextAnchor.MiddleRight, MutedColor);
-		row.Update.raycastTarget = false;
-
-		GameObject buttons = FixedCell(rowGo.transform, "Buttons", 276f);
-		string page = ModUpdates.Page(mod);
-		if (page.Length > 0)
-		{
-			GcUi.CreateButton(buttons.transform, ui("mod_page"), new Vector2(0.5f, 0.5f), new Vector2(-82f, 0f), 108f, 34f, () => Application.OpenURL(page));
-		}
+		GameObject buttons = FixedCell(rowGo.transform, "Buttons", 176f);
 		if (HasSettings(mod))
 		{
-			GcUi.CreateButton(buttons.transform, ui("mod_settings"), new Vector2(0.5f, 0.5f), new Vector2(56f, 0f), 160f, 34f, () => JumpToSettings(mod));
+			GcUi.CreateButton(buttons.transform, ui("mod_settings"), new Vector2(0.5f, 0.5f), Vector2.zero, 160f, 34f, () => JumpToSettings(mod));
 		}
 		return row;
 	}
@@ -396,18 +362,6 @@ public sealed partial class GcMenu
 	/// <summary>Meldung, wenn die Liste oder ein Profil nicht gespeichert werden konnte (sonst leer).</summary>
 	private string SaveError() => ModSwitch.LastError.Length > 0 ? ui("save_failed").Replace("$1", ModSwitch.LastError) : "";
 
-	private void StartUpdateCheck()
-	{
-		if (ModUpdates.Running || KernPlugin.Instance == null)
-		{
-			return;
-		}
-		updateCheckStarted = true;
-		modsMessage = "";
-		KernPlugin.Instance.StartCoroutine(ModUpdates.Check(ModSwitch.Catalog, () => modsDirty = true));
-		Refresh();
-	}
-
 	private void RefreshMods()
 	{
 		if (modsContent == null)
@@ -437,16 +391,10 @@ public sealed partial class GcMenu
 			row.Sub.text = package + mod.Guid;
 			row.Status.text = StatusText(mod, off, out Color color);
 			row.Status.color = color;
-			row.Update.text = UpdateText(mod, out Color updateColor);
-			row.Update.color = updateColor;
 		}
 		if (modsStatus != null)
 		{
-			modsStatus.text = modsMessage.Length > 0 ? modsMessage : UpdateStatus();
-		}
-		if (modsCheck != null)
-		{
-			modsCheck.interactable = !ModUpdates.Running;
+			modsStatus.text = modsMessage;
 		}
 	}
 
@@ -508,49 +456,6 @@ public sealed partial class GcMenu
 			}
 		}
 		return text;
-	}
-
-	private string UpdateText(ModSwitch.Mod mod, out Color color)
-	{
-		color = MutedColor;
-		if (ModUpdates.IsOwn(mod))
-		{
-			return ui("mod_own");
-		}
-		ModUpdates.Info? info = ModUpdates.For(mod);
-		if (info == null)
-		{
-			return "";
-		}
-		if (info.Newer)
-		{
-			color = WarnColor;
-			return ui("mod_update").Replace("$1", info.Latest);
-		}
-		color = GoodColor;
-		return ui("mod_current");
-	}
-
-	private string UpdateStatus()
-	{
-		if (ModUpdates.Running)
-		{
-			return ui("mods_checking").Replace("$1", ModUpdates.Done.ToString()).Replace("$2", ModUpdates.Total.ToString());
-		}
-		if (ModUpdates.LastError.Length > 0)
-		{
-			return ui("mods_check_failed").Replace("$1", ModUpdates.LastError);
-		}
-		if (!ModUpdates.HasResults)
-		{
-			return "";
-		}
-		if (ModUpdates.NothingFound)
-		{
-			return ui("mods_check_none"); // nicht „alles aktuell“, wenn gar nichts gefunden wurde
-		}
-		int newer = ModSwitch.Catalog.Select(m => ModUpdates.For(m)).Where(i => i != null && i.Newer).Distinct().Count();
-		return newer > 0 ? ui("mods_updates").Replace("$1", newer.ToString()) : ui("mods_uptodate");
 	}
 
 	// ------------------------------------------------------------------ Ansicht Profile

@@ -8,12 +8,11 @@
     <AssemblyName>GC_Kern</AssemblyName>
     <RootNamespace>GC.Shared</RootNamespace>
     <Product>GC_Kern</Product>
-    <Version>1.1.0</Version>
+    <Version>1.1.1</Version>
     <GcPaket>GC_Server;GC_Client;ValheimPlusPlus</GcPaket>
   </PropertyGroup>
   <ItemGroup>
-    <!-- Mod-Liste: Update-Prüfung (UnityWebRequest) und JSON von Thunderstore, Nexus und manifest.json (JsonUtility) -->
-    <Reference Include="UnityEngine.UnityWebRequestModule" HintPath="$(Managed)\UnityEngine.UnityWebRequestModule.dll" Private="false" />
+    <!-- Mod-Liste: manifest.json der Pakete lesen (JsonUtility); keine Web-Anfragen mehr (Update-Prüfung entfernt, 25.10.2026) -->
     <Reference Include="UnityEngine.JSONSerializeModule" HintPath="$(Managed)\UnityEngine.JSONSerializeModule.dll" Private="false" />
   </ItemGroup>
 </Project>

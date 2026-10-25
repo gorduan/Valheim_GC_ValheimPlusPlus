@@ -161,7 +161,7 @@ In Patches und Updates gilt:
   - Server-Regeln erkennt das Menü an Jötunns `IsAdminOnly` und an ServerSync (`SyncedConfigEntry` in den Tags). Jötunn verteilt Admin-Änderungen über `SynchronizeChangedConfig`, ServerSync selbst.
   - Bedienung je Typ wie bei den GC-Mods; Text, Listen, Farben und Zahlen ohne Grenzen über ein Eingabefeld. Knopf „Standard“ bei abweichendem Wert.
   - ConfigurationManager-Angaben werden beachtet: `Browsable`, `DispName`, `Category`, `Order`, `Description`, `ReadOnly`, `IsAdvanced`, `HideDefaultButton`.
-- **Reiter Mods und Profile** (aus Mod Menu übernommen und erweitert): Mods ein- und ausschalten, Zustand, Update-Hinweis, Profile, Neustart. Den Schalter setzt der Vorlader `GC_ModSchalter_<Paket>.dll` im Unterordner `patchers` jedes Pakets um (Liste `BepInEx/config/GC_Kern/aus.txt`); jede Kopie hat ihren eigenen Assembly-Namen, sonst lehnt BepInEx die zweite ab.
+- **Reiter Mods und Profile** (aus Mod Menu übernommen und erweitert): Mods ein- und ausschalten, Zustand, Profile. Neu gestartet wird über r2modman. Seit Kern 1.1.1 gibt es keinen eigenen Neustart (PowerShell, Registry) und keine Update-Prüfung (Web-Anfragen) mehr: Thunderstore hatte die Pakete abgelehnt, und beides war nicht nötig. Solche Aufrufe nicht wieder einbauen. Den Schalter setzt der Vorlader `GC_ModSchalter_<Paket>.dll` im Unterordner `patchers` jedes Pakets um (Liste `BepInEx/config/GC_Kern/aus.txt`); jede Kopie hat ihren eigenen Assembly-Namen, sonst lehnt BepInEx die zweite ab.
 - **ValheimPlus** steht mit im Menü:
   - Im Spiel sind seine Werte nur zum Lesen da.
   - Im Hauptmenü sind sie änderbar. Beim Schließen wendet ValheimPlus sie neu an.

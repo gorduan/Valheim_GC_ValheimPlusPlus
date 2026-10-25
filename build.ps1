@@ -46,21 +46,21 @@ function English([string]$key, [string]$fallback) { if ($english.ContainsKey($ke
 # alten Baum. Beide Texte stehen auch in Valheim\Thunderstore-Beschreibungen.md.
 $pakete = [ordered]@{
     'GC_Server' = @{
-        version = '1.8.0'
+        version = '1.8.1'
         titel = 'GC Server'
         website = 'https://github.com/gorduan/Valheim_GC_Server'
         description = 'Gameplay for server and players, one DLL per feature: animal leashes, whistles and an Animal Care skill, more tameable animals with saddles, Valkyrie cart transport, cultivator fields, ladders, portal name lists.'
         beschreibung = 'Spielmechanik für Server und Spieler, jede Funktion eine eigene DLL: Tierleinen, Tierpfeifen und Skill Tierpflege, mehr zähmbare Tiere mit Sätteln, Walküren-Transport für Karren, Felder, Leitern, Portalnamen.'
     }
     'GC_Client' = @{
-        version = '1.6.0'
+        version = '1.6.1'
         titel = 'GC Client'
         website = 'https://github.com/gorduan/Valheim_GC_Client'
         description = 'Client-side quality of life, one DLL per feature: equipment comparison, compass, sorting, auto doors, area harvest, carry limit, trash slot, dungeon map. Includes GC Option, an in-game settings menu for all mods.'
         beschreibung = 'Komfort für Spieler, jede Funktion eine eigene DLL: Ausrüstungs-Vergleich, Kompass, Sortieren, automatische Türen, Umkreis-Ernte, Traglimit, Vernichten, Dungeon-Karte. Mit GC Option, dem Einstellungsmenü für alle Mods.'
     }
     'ValheimPlusPlus' = @{
-        version = '1.5.0'
+        version = '1.5.1'
         titel = 'ValheimPlusPlus'
         website = 'https://github.com/gorduan/Valheim_GC_ValheimPlusPlus'
         description = 'Add-ons for ValheimPlus, one DLL per feature: item locks, linked chests with a building overview, auto-stack fix for EpicLoot items, regrowing trees, slower food drain at your base.'

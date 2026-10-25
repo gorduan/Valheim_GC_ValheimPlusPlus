@@ -487,11 +487,6 @@ public sealed partial class GcMenu
 					Refresh();
 				}
 			}
-			if (modsDirty && view == View.Mods)
-			{
-				modsDirty = false; // ein Ergebnis der Update-Prüfung ist da
-				Refresh();
-			}
 			if (Time.unscaledTime >= nextRefresh)
 			{
 				nextRefresh = Time.unscaledTime + 0.5f; // Admin-Status und Server-Werte können sich ändern
@@ -689,8 +684,6 @@ public sealed partial class GcMenu
 		hintLabel = GcUi.CreateLabel(window.transform, ui("hint_config"), new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(44f, 64f), new Vector2(-44f, 86f), 15, TextAnchor.MiddleCenter, MutedColor);
 		hintLabel.raycastTarget = false;
 		GcUi.CreateButton(window.transform, ui("close"), new Vector2(0.5f, 0f), new Vector2(0f, 38f), 200f, 42f, Hide);
-		restartButton = GcUi.CreateButton(window.transform, ui("restart"), new Vector2(1f, 0f), new Vector2(-180f, 38f), 260f, 42f, OnRestart);
-		restartButton.gameObject.SetActive(false);
 		builtShape = shape; // erst wenn alles steht: ein Fehler beim Aufbau führt beim nächsten Öffnen zu einem neuen Versuch
 	}
 

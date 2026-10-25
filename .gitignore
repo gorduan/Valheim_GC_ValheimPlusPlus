@@ -4,3 +4,4 @@ obj/
 .vs/
 GamePaths.user.props
 build-output/
+__pycache__/

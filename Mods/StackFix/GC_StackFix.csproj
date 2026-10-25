@@ -4,7 +4,7 @@
     <AssemblyName>GC_StackFix</AssemblyName>
     <RootNamespace>GC.ValheimPlusPlus.ModStackFix</RootNamespace>
     <Product>GC_StackFix</Product>
-    <Version>1.5.0</Version>
+    <Version>1.5.1</Version>
     <GcPaket>ValheimPlusPlus</GcPaket>
     <GcId>stackfix</GcId>
     <GcStufe>3</GcStufe>

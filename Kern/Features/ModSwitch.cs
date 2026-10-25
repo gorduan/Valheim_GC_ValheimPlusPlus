@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -11,7 +10,7 @@ using UnityEngine;
 namespace GC.Kern;
 
 /// <summary>
-/// Mods ein- und ausschalten, Mod-Profile, Neustart (Gorduan, 25.10.2026: „Übernehme alle Features von Mod Menu und verbessere
+/// Mods ein- und ausschalten und Mod-Profile (Gorduan, 25.10.2026: „Übernehme alle Features von Mod Menu und verbessere
 /// sie, dann können wir die Mod auch rauslassen“). Der Vorlader GC_ModSchalter (BepInEx\patchers) nimmt beim Start die
 /// Plugins aus BepInEx/config/GC_Kern/aus.txt aus der Liste des Chainloaders; hier entstehen Liste, Zustände und die Datei.
 ///
@@ -20,9 +19,10 @@ namespace GC.Kern;
 ///    scheitern); wer eine einschaltet, schaltet ihre harten Abhängigkeiten mit ein. GUIDs ohne Rücksicht auf Groß/klein.
 ///  * Kein zweiter Scan des Plugin-Ordners: Der Vorlader hat alle gefundenen Plugins schon (BepInEx' Cache bleibt heil).
 ///  * Profile: Laden übergeht Mods, die nicht mehr installiert sind, und sagt es; Löschen legt die Datei in profile\geloescht.
-///  * Neustart behält das r2modman-Profil: dieselbe valheim.exe mit genau denselben Argumenten (Doorstop), sauber
-///    gequotet; nur ohne steam_appid.txt über steam.exe -applaunch. Nur im Hauptmenü (in einer Welt erst abmelden).
 ///  * Liste und Profile von Mod Menu (config/ModMenu) werden beim ersten Mal übernommen.
+///
+/// Kein eigener Neustart mehr (Gorduan, 25.10.2026: Thunderstore lehnte die Pakete ab; er lief über ein verstecktes PowerShell
+/// und las den Steam-Pfad aus der Registry, und nötig ist er nicht): Geänderte Mods gelten nach einem Neustart über r2modman.
 /// </summary>
 internal static class ModSwitch
 {
@@ -515,139 +515,6 @@ internal static class ModSwitch
 		catch (Exception e)
 		{
 			UnityEngine.Debug.LogWarning($"GC_Kern: Mod Menu nicht übernommen: {e.Message}");
-		}
-	}
-
-	// ------------------------------------------------------------------ Neustart
-
-	/// <summary>Neustart geht nur im Hauptmenü (in einer Welt erst abmelden) und unter Windows.</summary>
-	internal static bool CanRestart => ZNet.instance == null && Application.platform == RuntimePlatform.WindowsPlayer;
-
-	private static bool restarting;
-
-	/// <summary>
-	/// Spiel neu starten und das r2modman-Profil behalten: Ein verstecktes PowerShell wartet, bis dieses Spiel beendet ist, und
-	/// startet dieselbe valheim.exe mit denselben Argumenten (Doorstop zeigt auf das Profil). Ohne steam_appid.txt würde
-	/// Steam das Spiel ohne Argumente neu starten, dann über steam.exe -applaunch 892970 mit den Argumenten. Das Skript geht
-	/// über die Standardeingabe (-Command -), nicht verschlüsselt: Virenscanner melden versteckte -EncodedCommand-Aufrufe
-	/// eines Spiels gern (Code-Prüfung 25.10.2026). Ein zweiter Klick tut nichts.
-	/// </summary>
-	internal static bool Restart(out string error)
-	{
-		error = "";
-		if (restarting)
-		{
-			return true;
-		}
-		try
-		{
-			Process self = Process.GetCurrentProcess();
-			string exe = self.MainModule.FileName;
-			string dir = Path.GetDirectoryName(exe)!;
-			string args = string.Join(" ", Environment.GetCommandLineArgs().Skip(1).Select(QuoteArgument));
-			string file = exe;
-			if (!File.Exists(Path.Combine(dir, "steam_appid.txt")) && SteamExe() is string steam)
-			{
-				file = steam;
-				args = ("-applaunch 892970 " + args).Trim();
-			}
-			// Doorstop setzt im laufenden Spiel DOORSTOP_*-Variablen; erbt das neue Spiel sie, hält Doorstop es für einen
-			// Unterprozess und lädt BepInEx nicht (Test 25.10.2026: Neustart kam ohne Mods). Deshalb ohne diese Variablen.
-			string script = "Get-ChildItem Env: | Where-Object { $_.Name -like 'DOORSTOP*' } | ForEach-Object { Remove-Item -LiteralPath ('Env:' + $_.Name) }; "
-				+ $"Wait-Process -Id {self.Id} -ErrorAction SilentlyContinue; Start-Process -FilePath {Ps(file)} -WorkingDirectory {Ps(dir)}"
-				+ (args.Length > 0 ? $" -ArgumentList {Ps(args)}" : "");
-			ProcessStartInfo start = new("powershell.exe", "-NoProfile -NonInteractive -WindowStyle Hidden -Command -")
-			{
-				UseShellExecute = false,
-				CreateNoWindow = true,
-				RedirectStandardInput = true,
-			};
-			foreach (string key in start.EnvironmentVariables.Keys.Cast<string>().ToList())
-			{
-				if (key.StartsWith("DOORSTOP", StringComparison.OrdinalIgnoreCase))
-				{
-					start.EnvironmentVariables.Remove(key);
-				}
-			}
-			Process shell = Process.Start(start);
-			shell.StandardInput.WriteLine(script);
-			shell.StandardInput.Close();
-			restarting = true;
-			Application.Quit();
-			return true;
-		}
-		catch (Exception e)
-		{
-			error = e.Message;
-			return false;
-		}
-	}
-
-	/// <summary>
-	/// Text als PowerShell-Ausdruck aus reinen ASCII-Zeichen (die Standardeingabe hat keine sichere Kodierung): Umlaute und
-	/// andere Zeichen als [char]0x…, der Rest in einfachen Anführungszeichen.
-	/// </summary>
-	private static string Ps(string text)
-	{
-		List<string> parts = new();
-		StringBuilder run = new();
-		foreach (char c in text)
-		{
-			if (c >= 0x20 && c < 0x7f)
-			{
-				run.Append(c == '\'' ? "''" : c.ToString());
-				continue;
-			}
-			if (run.Length > 0)
-			{
-				parts.Add("'" + run + "'");
-				run.Clear();
-			}
-			parts.Add($"[char]0x{(int)c:X4}");
-		}
-		if (run.Length > 0 || parts.Count == 0)
-		{
-			parts.Add("'" + run + "'");
-		}
-		// mit '' vorne, damit PowerShell Text verkettet und nicht mit [char] rechnet
-		return parts.Count == 1 && parts[0].StartsWith("'", StringComparison.Ordinal) ? parts[0] : "('' + " + string.Join(" + ", parts) + ")";
-	}
-
-	/// <summary>Ein Argument so quoten, wie Windows (CommandLineToArgvW) es wieder zerlegt.</summary>
-	private static string QuoteArgument(string arg)
-	{
-		if (arg.Length > 0 && arg.IndexOfAny(new[] { ' ', '\t', '"' }) < 0)
-		{
-			return arg;
-		}
-		StringBuilder sb = new("\"");
-		int backslashes = 0;
-		foreach (char c in arg)
-		{
-			if (c == '\\')
-			{
-				backslashes++;
-				continue;
-			}
-			sb.Append('\\', c == '"' ? backslashes * 2 + 1 : backslashes);
-			backslashes = 0;
-			sb.Append(c);
-		}
-		sb.Append('\\', backslashes * 2).Append('"');
-		return sb.ToString();
-	}
-
-	private static string? SteamExe()
-	{
-		try
-		{
-			using Microsoft.Win32.RegistryKey? key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Valve\Steam");
-			string? path = key?.GetValue("SteamExe") as string;
-			return path != null && File.Exists(path) ? path : null;
-		}
-		catch
-		{
-			return null;
 		}
 	}
 }

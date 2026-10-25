@@ -2,7 +2,7 @@
 
 Add-ons for ValheimPlus, one DLL per feature: item locks, linked chests with a building overview, auto-stack fix for EpicLoot items, regrowing trees, slower food drain at your base.
 
-Version 1.5.0 · Author: Gorduan · License: MIT
+Version 1.5.1 · Author: Gorduan · License: MIT
 
 ## Included mods
 

@@ -4,7 +4,7 @@
     <AssemblyName>GC_Schloesser</AssemblyName>
     <RootNamespace>GC.ValheimPlusPlus.ModSchloesser</RootNamespace>
     <Product>GC_Schloesser</Product>
-    <Version>1.5.0</Version>
+    <Version>1.5.1</Version>
     <GcPaket>ValheimPlusPlus</GcPaket>
     <GcId>schloesser</GcId>
     <GcStufe>2</GcStufe>

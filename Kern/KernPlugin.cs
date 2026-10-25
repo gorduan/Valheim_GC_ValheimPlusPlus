@@ -29,17 +29,12 @@ public class KernPlugin : BaseUnityPlugin
 	internal static ManualLogSource Log = null!;
 	internal static GcModule Module = null!;
 	internal static GcMenu Menu = null!;
-	/// <summary>Für Koroutinen des Menüs (Update-Prüfung).</summary>
-	internal static KernPlugin? Instance;
 	/// <summary>Taste für GC Option (aus Mod Menu übernommen), Standard: keine.</summary>
 	internal static ConfigEntry<KeyboardShortcut>? MenuKey;
-	/// <summary>Beim ersten Öffnen der Mod-Liste nach Updates sehen.</summary>
-	internal static ConfigEntry<bool>? UpdateCheck;
 
 	private void Awake()
 	{
 		Log = Logger;
-		Instance = this;
 		Module = GcKern.Register(this, Logger, new GcModInfo
 		{
 			Id = "kern",
@@ -60,8 +55,6 @@ public class KernPlugin : BaseUnityPlugin
 		Kern.Progression.BossScaling.Init(Config);
 		MenuKey = Config.Bind("2 - Menue", "Taste", KeyboardShortcut.Empty,
 			"Taste für das Menü GC Option, im Hauptmenü und im Spiel (nicht im Chat oder in der Konsole). Leer = nur über den Knopf.");
-		UpdateCheck = Config.Bind("2 - Menue", "UpdatesPruefen", true,
-			"Beim ersten Öffnen der Mod-Liste je Spielstart bei Thunderstore und Nexus nach Updates sehen (höchstens alle 6 Stunden, ohne Konto).");
 		Module.TakeOverOldSettings();
 
 		Harmony harmony = new(GcKern.Guid);
@@ -75,8 +68,7 @@ public class KernPlugin : BaseUnityPlugin
 			.Main("modcheck", Kern.ModCheck.Plugin.Enabled, () => Kern.ModCheck.Plugin.Blocked, "GC_ModCheck")
 			.Sub("modcheck_failure", Kern.ModCheck.Plugin.ShowOnFailure)
 			.Sub("modcheck_join", Kern.ModCheck.Plugin.ShowOnJoinIfMissing)
-			.Main("menukey", MenuKey)
-			.Main("updatecheck", UpdateCheck);
+			.Main("menukey", MenuKey);
 		Log.LogInfo($"{GcKern.Name} {GcKern.Version} geladen.");
 	}
 

@@ -4,7 +4,7 @@
     <AssemblyName>GC_BasisEssen</AssemblyName>
     <RootNamespace>GC.ValheimPlusPlus.ModBasisEssen</RootNamespace>
     <Product>GC_BasisEssen</Product>
-    <Version>1.5.0</Version>
+    <Version>1.5.1</Version>
     <GcPaket>ValheimPlusPlus</GcPaket>
     <GcId>basisessen</GcId>
     <GcStufe>4</GcStufe>
