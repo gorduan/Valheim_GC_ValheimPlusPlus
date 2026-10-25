@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- GC_BasisEssen (Gorduan): Weniger Hunger in der Basis. Steckbrief (Gc*) siehe ..\..\Directory.Build.targets -->
+  <PropertyGroup>
+    <AssemblyName>GC_BasisEssen</AssemblyName>
+    <RootNamespace>GC.ValheimPlusPlus.ModBasisEssen</RootNamespace>
+    <Product>GC_BasisEssen</Product>
+    <Version>1.5.0</Version>
+    <GcPaket>ValheimPlusPlus</GcPaket>
+    <GcId>basisessen</GcId>
+    <GcStufe>4</GcStufe>
+    <GcSeite>Alle</GcSeite>
+    <GcBraucht></GcBraucht>
+    <GcPartner></GcPartner>
+    <GcFremd></GcFremd>
+    <GcAlteConfig>gorduan.valheimplusplus.cfg</GcAlteConfig>
+    <GcAusgleich>1</GcAusgleich>
+    <GcTitel>Weniger Hunger in der Basis</GcTitel>
+    <GcBeschreibung>Essen läuft an der Werkbank und im Bereich eines Wächtersteins langsamer ab.</GcBeschreibung>
+  </PropertyGroup>
+</Project>

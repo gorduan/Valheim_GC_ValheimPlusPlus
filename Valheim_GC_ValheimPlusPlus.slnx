@@ -1,0 +1,24 @@
+<Solution>
+  <Folder Name="/Kern/">
+    <Project Path="Kern/GC_Kern.csproj" />
+  </Folder>
+  <Folder Name="/Patcher/">
+    <Project Path="Patcher/VPP/GC_ModSchalter_VPP.csproj" />
+  </Folder>
+  <Folder Name="/Mods/" />
+  <Folder Name="/Mods/Baeume/">
+    <Project Path="Mods/Baeume/GC_Baeume.csproj" />
+  </Folder>
+  <Folder Name="/Mods/BasisEssen/">
+    <Project Path="Mods/BasisEssen/GC_BasisEssen.csproj" />
+  </Folder>
+  <Folder Name="/Mods/Kisten/">
+    <Project Path="Mods/Kisten/GC_Kisten.csproj" />
+  </Folder>
+  <Folder Name="/Mods/Schloesser/">
+    <Project Path="Mods/Schloesser/GC_Schloesser.csproj" />
+  </Folder>
+  <Folder Name="/Mods/StackFix/">
+    <Project Path="Mods/StackFix/GC_StackFix.csproj" />
+  </Folder>
+</Solution>

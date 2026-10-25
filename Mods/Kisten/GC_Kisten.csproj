@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- GC_Kisten (Gorduan): Verbundene Kisten und Gebäude-Menü. Steckbrief (Gc*) siehe ..\..\Directory.Build.targets -->
+  <PropertyGroup>
+    <AssemblyName>GC_Kisten</AssemblyName>
+    <RootNamespace>GC.ValheimPlusPlus.ModKisten</RootNamespace>
+    <Product>GC_Kisten</Product>
+    <Version>1.5.0</Version>
+    <GcPaket>ValheimPlusPlus</GcPaket>
+    <GcId>kisten</GcId>
+    <GcStufe>3</GcStufe>
+    <GcSeite>ServerOptional</GcSeite>
+    <GcBraucht></GcBraucht>
+    <GcPartner>schloesser</GcPartner>
+    <GcFremd>org.bepinex.plugins.valheim_plus</GcFremd>
+    <GcAlteConfig>gorduan.valheimplusplus.cfg</GcAlteConfig>
+    <GcAusgleich>0</GcAusgleich>
+    <GcTitel>Verbundene Kisten und Gebäude-Menü</GcTitel>
+    <GcBeschreibung>Verbundene Kisten zeigen ihren Inhalt gemeinsam. Das Gebäude-Menü zeigt Schmelze und Co. und verknüpft Ein- und Ausgangskisten für ValheimPlus.</GcBeschreibung>
+  </PropertyGroup>
+</Project>

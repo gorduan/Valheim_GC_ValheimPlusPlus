@@ -1,0 +1,110 @@
+# GC_Client - German: Texte der Funktionen (aus den früheren Einzelmods)
+# --- Trash
+gct_button: "Vernichten"
+gct_hint: "Nimm ein Item mit der Maus auf und klicke dann auf Vernichten. Oder zeige auf ein Item und drücke Entf."
+gct_locked: "Dieses Item ist fixiert und kann nicht vernichtet werden."
+gct_equipped: "Lege das Item zuerst ab."
+gct_confirm_title: "Item vernichten"
+gct_confirm_text: "$1x $2 wirklich vernichten? Das lässt sich nicht rückgängig machen."
+gct_done: "$1x $2 vernichtet"
+
+# --- Sort
+gcs_button: "Sortieren"
+
+# --- QuickTake
+gcq_taken: "$1 geleert ($2 Items)"
+gcq_nothing: "Nichts genommen: alles fixiert oder kein Platz im Inventar."
+gcq_timeout: "Die Kiste hat nicht geantwortet, nichts genommen."
+
+# --- CarryLimit
+gccl_on: "Traglimit: an"
+gccl_off: "Traglimit: aus"
+gccl_too_heavy: "Zu schwer, du kannst nichts mehr tragen."
+gccl_partial: "$1 $2 bleiben liegen (Traglimit)"
+gccl_chest_partial: "$1 $2 genommen, der Rest bleibt in der Kiste (Traglimit)"
+
+# --- CartCollect
+gcc_stored: "$1 $2 in $3"
+gcc_paused: "Einsammeln ins Fahrzeug pausiert"
+gcc_resumed: "Einsammeln ins Fahrzeug aktiv"
+
+# --- AutoDoor
+gcad_paused: "Automatische Türen pausiert"
+gcad_resumed: "Automatische Türen aktiv"
+
+# --- PortalGuard
+gcpg_confirm_title: "Portal umbenennen"
+gcpg_confirm_text: "Dieses Portal von '$1' in '$2' umbenennen? Portale mit dem alten Namen verlieren die Verbindung."
+gcpg_no_previous: "Dieses Portal hat keinen vorherigen Namen."
+gcpg_restore_title: "Portalnamen wiederherstellen"
+gcpg_restore_text: "Dieses Portal von '$1' zurück in '$2' umbenennen?"
+gcpg_hover_previous_list: "Vorheriger Name: '$1' (zurück über die Namensliste beim Umbenennen)"
+gcpg_hover_previous: "Vorheriger Name: '$1'  [<color=yellow><b>$2</b></color>] wiederherstellen"
+
+# --- DungeonMap
+gcdm_title: "Dungeon-Karte"
+
+# --- PortalNames
+gcpn_title: "Portalnamen"
+gcpn_own: "Meine Namen"
+gcpn_readonly: "(nur ansehen)"
+gcpn_none: "Noch keine Namen."
+gcpn_add: "+ Namen aus dem Feld merken"
+gcpn_previous: "Vorheriger Name (zurück)"
+gcpn_empty: "(ohne Namen)"
+gcpn_renamed: "Portal heißt jetzt: $1"
+
+# Kompass
+gcc_dir_n: "N"
+gcc_dir_ne: "NE"
+gcc_dir_e: "E"
+gcc_dir_se: "SE"
+gcc_dir_s: "S"
+gcc_dir_sw: "SW"
+gcc_dir_w: "W"
+gcc_dir_nw: "NW"
+gcc_marker: "Markierung"
+gcc_bed: "Bett"
+gcc_loc: "Ort"
+gcc_loc_start: "Opfersteine"
+gcc_focus_set: "Kompass-Ziel: $1"
+gcc_focus_clear: "Kompass-Ziel aufgehoben"
+gcc_no_pin: "Keine Markierung unter dem Mauszeiger"
+gccf_marker_name: "Feld markieren"
+gccf_marker_desc: "Steck ein Feld ab. Darin setzt der Kultivator Reihe für Reihe."
+gccf_hint_marker: "Feld markieren: Linksklick setzt Eckpunkte, ein Klick auf den Startpunkt schließt das Feld. Rechtsklick nimmt einen Punkt zurück oder hebt das Feld auf, Esc bricht ab."
+gccf_hint_plant: "Im Feld pflanzt der Kultivator auf den nächsten freien Platz. E halten bepflanzt nach und nach."
+gccf_inside_other: "Hier liegt schon ein Feld."
+gccf_too_many: "Höchstens $1 Eckpunkte."
+gccf_too_long: "Kante zu lang, höchstens $1 m."
+gccf_crossing: "Die Kanten dürfen sich nicht kreuzen."
+gccf_overlap: "Das Feld überschneidet ein anderes."
+gccf_too_small: "Das Feld ist zu klein."
+gccf_no_server: "Felder brauchen GC_Server auf dem Server."
+gccf_closed: "Feld angelegt ($1 m²)."
+gccf_cancel: "Feld verworfen."
+gccf_remove_title: "Feld aufheben"
+gccf_remove_text: "Dieses Feld wirklich aufheben? Die Pflanzen bleiben stehen."
+gccf_removed: "Feld aufgehoben."
+gccf_denied_creator: "Nur der Ersteller und Admins dürfen dieses Feld aufheben."
+gccf_denied_guild: "Nur der Ersteller, seine Gildenleitung und Admins dürfen dieses Feld aufheben."
+gccf_denied_admin: "Nur Admins dürfen Felder aufheben."
+gccf_no_slot: "Kein freier Platz in Reichweite."
+gccf_no_seeds: "Keine Samen mehr."
+gccf_need_three: "Ein Feld braucht mindestens 3 Eckpunkte."
+gccf_too_big: "Das Feld ist zu groß: Ecken höchstens $1 m von der Mitte."
+# --- Ausrüstungs-Vergleich
+gccmp_equipped: "Ausgerüstet"
+gccmp_equipped_hidden: "Ausgerüstet (weggesteckt)"
+gccmp_changes: "Beim Anlegen:"
+gccmp_none: "Keine Unterschiede bei den Werten."
+gccmp_total: "Schaden gesamt"
+gccmp_resist: "Schutz gegen $1"
+gccmp_res_normal: "normal"
+gccmp_set_gained: "Setbonus $1 wird aktiv"
+gccmp_set_lost: "Setbonus $1 entfällt"
+gccmp_set_parts: "Set $1: $2 von $4 Teilen » $3 von $4"
+gccmp_effect_gained: "Neuer Effekt: $1"
+gccmp_effect_lost: "Effekt entfällt: $1"
+gccmp_on: "Ausrüstungs-Vergleich an"
+gccmp_off: "Ausrüstungs-Vergleich aus"

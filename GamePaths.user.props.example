@@ -1,0 +1,11 @@
+<Project>
+  <!--
+    Copy this file to GamePaths.user.props (ignored by git) and set your paths.
+    GamePath: your Valheim folder with BepInEx installed (BepInEx\core\BepInEx.dll and valheim_Data\Managed must exist).
+    JotunnDll: Jotunn.dll from the ValheimModding-Jotunn package (for example from an r2modman profile).
+  -->
+  <PropertyGroup>
+    <GamePath>C:\Program Files (x86)\Steam\steamapps\common\Valheim</GamePath>
+    <JotunnDll>C:\Program Files (x86)\Steam\steamapps\common\Valheim\BepInEx\plugins\ValheimModding-Jotunn\Jotunn.dll</JotunnDll>
+  </PropertyGroup>
+</Project>

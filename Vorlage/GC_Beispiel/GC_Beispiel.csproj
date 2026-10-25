@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Vorlage für eine neue GC-Mod (Gorduan-SDK). So geht's:
+      1. Diesen Ordner nach Mods\<Name> kopieren und die Datei in GC_<Name>.csproj umbenennen.
+      2. Unten AssemblyName, RootNamespace und die Gc*-Eigenschaften anpassen (Bedeutung: ..\..\Directory.Build.targets).
+         GcPaket: GC_Server, GC_Client oder ValheimPlusPlus; Version = Version dieses Pakets.
+      3. In die Projektmappe aufnehmen:  dotnet sln GCMods.slnx add Mods\<Name>\GC_<Name>.csproj
+      4. build.ps1 ausführen: Paket, Zip, Katalog und Auswahl-Programm entstehen von selbst.
+  -->
+  <PropertyGroup>
+    <AssemblyName>GC_Beispiel</AssemblyName>
+    <RootNamespace>GC.Mods.Beispiel</RootNamespace>
+    <Product>GC_Beispiel</Product>
+    <Version>1.5.0</Version>
+    <GcPaket>GC_Client</GcPaket>
+    <GcId>beispiel</GcId>
+    <GcStufe>1</GcStufe>
+    <GcSeite>Spieler</GcSeite>
+    <GcBraucht></GcBraucht>
+    <GcPartner></GcPartner>
+    <GcFremd></GcFremd>
+    <GcAlteConfig></GcAlteConfig>
+    <GcAusgleich>0</GcAusgleich>
+    <GcTitel>Beispiel</GcTitel>
+    <GcBeschreibung>Zeigt beim Betreten der Welt eine Begrüßung. Vorlage für neue GC-Mods.</GcBeschreibung>
+  </PropertyGroup>
+</Project>

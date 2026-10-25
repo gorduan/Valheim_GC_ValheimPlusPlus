@@ -1,0 +1,110 @@
+# GC_Client - English: Texte der Funktionen (aus den früheren Einzelmods)
+# --- Trash
+gct_button: "Destroy"
+gct_hint: "Pick up an item with the mouse, then click Destroy. Or hover an item and press Delete."
+gct_locked: "This item is locked and cannot be destroyed."
+gct_equipped: "Unequip the item first."
+gct_confirm_title: "Destroy item"
+gct_confirm_text: "Really destroy $1x $2? This cannot be undone."
+gct_done: "$1x $2 destroyed"
+
+# --- Sort
+gcs_button: "Sort"
+
+# --- QuickTake
+gcq_taken: "Emptied $1 ($2 items)"
+gcq_nothing: "Nothing taken: everything locked or no room in your inventory."
+gcq_timeout: "The chest did not answer, nothing taken."
+
+# --- CarryLimit
+gccl_on: "Carry limit: on"
+gccl_off: "Carry limit: off"
+gccl_too_heavy: "Too heavy, you cannot carry any more."
+gccl_partial: "$1 $2 left on the ground (carry limit)"
+gccl_chest_partial: "Took $1 $2, the rest stays in the chest (carry limit)"
+
+# --- CartCollect
+gcc_stored: "$1 $2 into $3"
+gcc_paused: "Vehicle collecting paused"
+gcc_resumed: "Vehicle collecting active"
+
+# --- AutoDoor
+gcad_paused: "Automatic doors paused"
+gcad_resumed: "Automatic doors active"
+
+# --- PortalGuard
+gcpg_confirm_title: "Rename portal"
+gcpg_confirm_text: "Rename this portal from '$1' to '$2'? Portals with the old name lose their connection."
+gcpg_no_previous: "This portal has no previous name."
+gcpg_restore_title: "Restore portal name"
+gcpg_restore_text: "Rename this portal from '$1' back to '$2'?"
+gcpg_hover_previous_list: "Previous name: '$1' (restore it from the name list while renaming)"
+gcpg_hover_previous: "Previous name: '$1'  [<color=yellow><b>$2</b></color>] restore"
+
+# --- DungeonMap
+gcdm_title: "Dungeon map"
+
+# --- PortalNames
+gcpn_title: "Portal names"
+gcpn_own: "My names"
+gcpn_readonly: "(view only)"
+gcpn_none: "No names yet."
+gcpn_add: "+ Save the name from the field"
+gcpn_previous: "Previous name (restore)"
+gcpn_empty: "(no name)"
+gcpn_renamed: "Portal is now called: $1"
+
+# Compass
+gcc_dir_n: "N"
+gcc_dir_ne: "NE"
+gcc_dir_e: "E"
+gcc_dir_se: "SE"
+gcc_dir_s: "S"
+gcc_dir_sw: "SW"
+gcc_dir_w: "W"
+gcc_dir_nw: "NW"
+gcc_marker: "Marker"
+gcc_bed: "Bed"
+gcc_loc: "Location"
+gcc_loc_start: "Sacrificial stones"
+gcc_focus_set: "Compass target: $1"
+gcc_focus_clear: "Compass target removed"
+gcc_no_pin: "No marker under the cursor"
+gccf_marker_name: "Mark field"
+gccf_marker_desc: "Stake out a field. Inside it the cultivator plants row by row."
+gccf_hint_marker: "Mark field: left click sets corner points, clicking the start point closes the field. Right click takes a point back or removes the field, Esc cancels."
+gccf_hint_plant: "Inside a field the cultivator plants on the next free spot. Hold E to plant one after another."
+gccf_inside_other: "There is already a field here."
+gccf_too_many: "At most $1 corner points."
+gccf_too_long: "Edge too long, at most $1 m."
+gccf_crossing: "Edges must not cross."
+gccf_overlap: "The field overlaps another one."
+gccf_too_small: "The field is too small."
+gccf_no_server: "Fields need GC_Server on the server."
+gccf_closed: "Field created ($1 m²)."
+gccf_cancel: "Field discarded."
+gccf_remove_title: "Remove field"
+gccf_remove_text: "Really remove this field? The plants stay."
+gccf_removed: "Field removed."
+gccf_denied_creator: "Only the creator and admins may remove this field."
+gccf_denied_guild: "Only the creator, their guild leaders and admins may remove this field."
+gccf_denied_admin: "Only admins may remove fields."
+gccf_no_slot: "No free spot within reach."
+gccf_no_seeds: "Out of seeds."
+gccf_need_three: "A field needs at least 3 corner points."
+gccf_too_big: "The field is too large: corners at most $1 m from the centre."
+# --- Equipment comparison
+gccmp_equipped: "Equipped"
+gccmp_equipped_hidden: "Equipped (sheathed)"
+gccmp_changes: "If you equip it:"
+gccmp_none: "No difference in stats."
+gccmp_total: "Total damage"
+gccmp_resist: "Resistance to $1"
+gccmp_res_normal: "normal"
+gccmp_set_gained: "Set bonus $1 becomes active"
+gccmp_set_lost: "Set bonus $1 is lost"
+gccmp_set_parts: "Set $1: $2 of $4 parts » $3 of $4"
+gccmp_effect_gained: "New effect: $1"
+gccmp_effect_lost: "Effect lost: $1"
+gccmp_on: "Equipment comparison on"
+gccmp_off: "Equipment comparison off"

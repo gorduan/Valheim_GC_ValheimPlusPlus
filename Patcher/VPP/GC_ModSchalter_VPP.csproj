@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    GC_ModSchalter (Gorduan): BepInEx-Vorlader für das Ein- und Ausschalten von Mods im Menü „GC Option“ (Ansicht Mods),
+    Quelltext ..\ModSchalter.cs. Jedes Paket bekommt eine eigene Assembly (GC_ModSchalter_<Paket>): BepInEx lehnt sonst die
+    zweite Kopie desselben Vorladers mit einem Fehler ab („same key has already been added“, Test 25.10.2026). Nur die
+    erste Kopie hängt sich ein. Kein GcId: keine Mod im Katalog, nur eine Datei im Unterordner patchers des Pakets.
+  -->
+  <PropertyGroup>
+    <AssemblyName>GC_ModSchalter_VPP</AssemblyName>
+    <RootNamespace>GC.Patcher</RootNamespace>
+    <Product>GC_ModSchalter</Product>
+    <Version>1.1.0</Version>
+    <GcPaket>ValheimPlusPlus</GcPaket>
+    <GcOrdner>patchers</GcOrdner>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\ModSchalter.cs" />
+    <Reference Include="Mono.Cecil" HintPath="$(GamePath)\BepInEx\core\Mono.Cecil.dll" Private="false" />
+  </ItemGroup>
+</Project>

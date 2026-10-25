@@ -1,0 +1,5 @@
+# GC_Beispiel - English
+gcbeispiel_hello: "Welcome, $1!"
+gcbeispiel_t_enabled_name: "Greeting"
+gcbeispiel_t_enabled_desc: "Shows a greeting at the top left when you enter the world."
+gck_mod_beispiel: "Example"

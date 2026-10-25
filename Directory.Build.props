@@ -1,0 +1,72 @@
+<Project>
+  <!--
+    GC-Mods (Gorduan), modularer Aufbau seit 20.10.2026: jede Mod ein eigenes Paket, dazu der Kern GC_Kern (das SDK).
+    Gemeinsame Build-Einstellungen. Eine Mod beschreibt sich in ihrer .csproj mit den Gc*-Eigenschaften
+    (siehe Directory.Build.targets); daraus entstehen Plugin-Attribute, Mod-Steckbrief, manifest.json und Katalog.
+    Kompiliert wird gegen die Mono-Bibliotheken des Spiels: GamePath (Valheim-Ordner mit BepInEx) und JotunnDll stehen in
+    GamePaths.user.props (nicht im Git, Vorlage GamePaths.user.props.example; öffentliche Repos seit 25.10.2026).
+    Gebaut wird nach ..\build-output\GCMods, wenn neben dem Repo ein Ordner build-output liegt (lokaler Aufbau unter
+    Valheim\mods), sonst nach build-output\GCMods im Repo; nicht direkt ins r2modman-Profil (das macht tools\deploy_profil.py).
+  -->
+  <Import Project="$(MSBuildThisFileDirectory)GamePaths.user.props" Condition="Exists('$(MSBuildThisFileDirectory)GamePaths.user.props')" />
+  <PropertyGroup>
+    <TargetFramework>net481</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <Authors>Gorduan</Authors>
+    <Company>Gorduan</Company>
+    <GamePath Condition="'$(GamePath)' == ''">C:\Program Files (x86)\Steam\steamapps\common\Valheim</GamePath>
+    <JotunnDll Condition="'$(JotunnDll)' == ''">$(GamePath)\BepInEx\plugins\ValheimModding-Jotunn\Jotunn.dll</JotunnDll>
+    <GcModsRoot>$(MSBuildThisFileDirectory)</GcModsRoot>
+    <GcPackageOut Condition="'$(GcPackageOut)' == '' And Exists('$(MSBuildThisFileDirectory)..\build-output')">$(MSBuildThisFileDirectory)..\build-output\GCMods</GcPackageOut>
+    <GcPackageOut Condition="'$(GcPackageOut)' == ''">$(MSBuildThisFileDirectory)build-output\GCMods</GcPackageOut>
+    <OutputPath>bin\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <DebugType>portable</DebugType>
+    <NoWarn>$(NoWarn);CS8632;CS0436;CS1591</NoWarn>
+    <ImplicitlyExpandNETStandardFacades>false</ImplicitlyExpandNETStandardFacades>
+    <ImplicitlyExpandDesignTimeFacades>false</ImplicitlyExpandDesignTimeFacades>
+    <DisableImplicitFrameworkReferences>true</DisableImplicitFrameworkReferences>
+    <NoStdLib>true</NoStdLib>
+    <NoStandardLibraries>true</NoStandardLibraries>
+    <AutoUnifyAssemblyReferences>true</AutoUnifyAssemblyReferences>
+    <AssemblySearchPaths>{HintPathFromItem};{RawFileName}</AssemblySearchPaths>
+    <Managed>$(GamePath)\valheim_Data\Managed</Managed>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.3" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="mscorlib" HintPath="$(Managed)\mscorlib.dll" Private="false" />
+    <Reference Include="System" HintPath="$(Managed)\System.dll" Private="false" />
+    <Reference Include="System.Core" HintPath="$(Managed)\System.Core.dll" Private="false" />
+    <Reference Include="netstandard" HintPath="$(Managed)\netstandard.dll" Private="false" />
+    <Reference Include="0Harmony" HintPath="$(GamePath)\BepInEx\core\0Harmony.dll" Private="false" />
+    <Reference Include="BepInEx" HintPath="$(GamePath)\BepInEx\core\BepInEx.dll" Private="false" />
+    <Reference Include="assembly_valheim" HintPath="$(Managed)\assembly_valheim.dll" Publicize="true" Private="false" />
+    <Reference Include="assembly_utils" HintPath="$(Managed)\assembly_utils.dll" Publicize="true" Private="false" />
+    <Reference Include="assembly_guiutils" HintPath="$(Managed)\assembly_guiutils.dll" Publicize="true" Private="false" />
+    <Reference Include="gui_framework" HintPath="$(Managed)\gui_framework.dll" Private="false" />
+    <Reference Include="UnityEngine" HintPath="$(Managed)\UnityEngine.dll" Private="false" />
+    <Reference Include="UnityEngine.CoreModule" HintPath="$(Managed)\UnityEngine.CoreModule.dll" Private="false" />
+    <Reference Include="UnityEngine.PhysicsModule" HintPath="$(Managed)\UnityEngine.PhysicsModule.dll" Private="false" />
+    <Reference Include="UnityEngine.AnimationModule" HintPath="$(Managed)\UnityEngine.AnimationModule.dll" Private="false" />
+    <Reference Include="UnityEngine.InputLegacyModule" HintPath="$(Managed)\UnityEngine.InputLegacyModule.dll" Private="false" />
+    <Reference Include="UnityEngine.AssetBundleModule" HintPath="$(Managed)\UnityEngine.AssetBundleModule.dll" Private="false" />
+    <Reference Include="UnityEngine.AudioModule" HintPath="$(Managed)\UnityEngine.AudioModule.dll" Private="false" />
+    <Reference Include="UnityEngine.IMGUIModule" HintPath="$(Managed)\UnityEngine.IMGUIModule.dll" Private="false" />
+    <Reference Include="UnityEngine.TextRenderingModule" HintPath="$(Managed)\UnityEngine.TextRenderingModule.dll" Private="false" />
+    <Reference Include="UnityEngine.UI" HintPath="$(Managed)\UnityEngine.UI.dll" Private="false" />
+    <Reference Include="UnityEngine.UIModule" HintPath="$(Managed)\UnityEngine.UIModule.dll" Private="false" />
+    <Reference Include="Unity.TextMeshPro" HintPath="$(Managed)\Unity.TextMeshPro.dll" Private="false" />
+    <Reference Include="Jotunn" HintPath="$(JotunnDll)" Private="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Texte einer Mod (Sprachen nach Dateiname, z. B. texte.German.yml); der Kern liest sie beim Anmelden der Mod -->
+    <EmbeddedResource Include="translations\*.yml" />
+  </ItemGroup>
+</Project>

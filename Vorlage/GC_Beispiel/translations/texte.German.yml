@@ -1,0 +1,5 @@
+# GC_Beispiel - Deutsch. Schlüssel mit eigenem Präfix (gcbeispiel_), damit sie keiner anderen Mod in die Quere kommen.
+gcbeispiel_hello: "Willkommen, $1!"
+gcbeispiel_t_enabled_name: "Begrüßung"
+gcbeispiel_t_enabled_desc: "Zeigt beim Betreten der Welt eine Begrüßung oben links."
+gck_mod_beispiel: "Beispiel"

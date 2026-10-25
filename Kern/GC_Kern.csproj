@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    GC_Kern (Gorduan): Laufzeit des GC-SDK. Jede GC-Mod braucht ihn: gemeinsames Menü „GC Option“, Einstellungen mit
+    Übernahme aus den alten Sammelpaketen, Texte, Rechte, Stufe des Servers, Mod-Abgleich, Hilfen für andere Mods.
+    Gemeinsame Einstellungen: ..\Directory.Build.props
+  -->
+  <PropertyGroup>
+    <AssemblyName>GC_Kern</AssemblyName>
+    <RootNamespace>GC.Shared</RootNamespace>
+    <Product>GC_Kern</Product>
+    <Version>1.1.0</Version>
+    <GcPaket>GC_Server;GC_Client;ValheimPlusPlus</GcPaket>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Mod-Liste: Update-Prüfung (UnityWebRequest) und JSON von Thunderstore, Nexus und manifest.json (JsonUtility) -->
+    <Reference Include="UnityEngine.UnityWebRequestModule" HintPath="$(Managed)\UnityEngine.UnityWebRequestModule.dll" Private="false" />
+    <Reference Include="UnityEngine.JSONSerializeModule" HintPath="$(Managed)\UnityEngine.JSONSerializeModule.dll" Private="false" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- GC_StackFix (Gorduan): Auto-Stack-Fix für ValheimPlus. Steckbrief (Gc*) siehe ..\..\Directory.Build.targets -->
+  <PropertyGroup>
+    <AssemblyName>GC_StackFix</AssemblyName>
+    <RootNamespace>GC.ValheimPlusPlus.ModStackFix</RootNamespace>
+    <Product>GC_StackFix</Product>
+    <Version>1.5.0</Version>
+    <GcPaket>ValheimPlusPlus</GcPaket>
+    <GcId>stackfix</GcId>
+    <GcStufe>3</GcStufe>
+    <GcSeite>Spieler</GcSeite>
+    <GcBraucht></GcBraucht>
+    <GcPartner></GcPartner>
+    <GcFremd>org.bepinex.plugins.valheim_plus</GcFremd>
+    <GcAlteConfig>gorduan.valheimplusplus.cfg</GcAlteConfig>
+    <GcAusgleich>0</GcAusgleich>
+    <GcTitel>Auto-Stack-Fix für ValheimPlus</GcTitel>
+    <GcBeschreibung>Das Auto-Stack von ValheimPlus lagert auch Rüstung, Schmuck und EpicLoot-Items ein. Die Schnellleiste bleibt geschützt. Wirkt nur mit ValheimPlus.</GcBeschreibung>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- GC_Baeume (Gorduan): Bäume wachsen nach. Steckbrief (Gc*) siehe ..\..\Directory.Build.targets -->
+  <PropertyGroup>
+    <AssemblyName>GC_Baeume</AssemblyName>
+    <RootNamespace>GC.ValheimPlusPlus.ModBaeume</RootNamespace>
+    <Product>GC_Baeume</Product>
+    <Version>1.5.0</Version>
+    <GcPaket>ValheimPlusPlus</GcPaket>
+    <GcId>baeume</GcId>
+    <GcStufe>4</GcStufe>
+    <GcSeite>Alle</GcSeite>
+    <GcBraucht></GcBraucht>
+    <GcPartner></GcPartner>
+    <GcFremd></GcFremd>
+    <GcAlteConfig>gorduan.valheimplusplus.cfg</GcAlteConfig>
+    <GcAusgleich>0</GcAusgleich>
+    <GcTitel>Bäume wachsen nach</GcTitel>
+    <GcBeschreibung>Baumstümpfe wachsen nach der Wachstumszeit eines Setzlings wieder zum Baum.</GcBeschreibung>
+  </PropertyGroup>
+</Project>
