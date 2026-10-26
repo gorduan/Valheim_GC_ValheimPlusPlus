@@ -20,7 +20,7 @@ public partial class Plugin : BaseUnityPlugin
 		Harmony harmony = new(GcMod.Guid);
 		StackFix.Plugin.Init(Config, harmony);
 		Module.TakeOverOldSettings();
-		harmony.PatchAll(typeof(Plugin).Assembly);
+		GcMod.PatchAll(harmony); // nur die Patches dieser Mod (alle Mods des Pakets in einer DLL)
 		Module.MenuGroup(key => GcLoc.Get("vpp_" + key))
 			.Main("stackfix", StackFix.Plugin.Enabled, () => StackFix.Plugin.Blocked, "GC_StackFix", requires: () => Gc.VPlusLoaded)
 			.Sub("hotbar", StackFix.Plugin.ProtectHotbar, blocked: () => StackFix.Plugin.Blocked, oldMod: "GC_StackFix");

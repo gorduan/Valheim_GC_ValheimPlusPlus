@@ -5,7 +5,9 @@
       2. Unten AssemblyName, RootNamespace und die Gc*-Eigenschaften anpassen (Bedeutung: ..\..\Directory.Build.targets).
          GcPaket: GC_Server, GC_Client oder ValheimPlusPlus; Version = Version dieses Pakets.
       3. In die Projektmappe aufnehmen:  dotnet sln GCMods.slnx add Mods\<Name>\GC_<Name>.csproj
-      4. build.ps1 ausführen: Paket, Zip, Katalog und Auswahl-Programm entstehen von selbst.
+      4. In Pakete\<Paket>\<DLL>.csproj als ProjectReference (Private="false") eintragen: Die Mods eines Pakets liegen
+         zusammen in einer DLL.
+      5. build.ps1 ausführen: Paket, Zip und Katalog entstehen von selbst.
   -->
   <PropertyGroup>
     <AssemblyName>GC_Beispiel</AssemblyName>

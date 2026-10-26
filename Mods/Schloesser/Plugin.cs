@@ -20,7 +20,7 @@ public partial class Plugin : BaseUnityPlugin
 		Harmony harmony = new(GcMod.Guid);
 		ItemLock.Plugin.Init(Config, harmony);
 		Module.TakeOverOldSettings();
-		harmony.PatchAll(typeof(Plugin).Assembly);
+		GcMod.PatchAll(harmony); // nur die Patches dieser Mod (alle Mods des Pakets in einer DLL)
 		Module.MenuGroup(key => GcLoc.Get("vpp_" + key))
 			.Main("itemlock", ItemLock.Plugin.ItemsEnabled, () => ItemLock.Plugin.Blocked, "GC_ItemLock")
 			.Sub("itemlock_key", ItemLock.Plugin.ItemModifier)

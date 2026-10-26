@@ -21,7 +21,7 @@ public partial class Plugin : BaseUnityPlugin
 		LinkedChests.Plugin.Init(Config, harmony);
 		StationStorage.Plugin.Init(Config, harmony);
 		Module.TakeOverOldSettings();
-		harmony.PatchAll(typeof(Plugin).Assembly);
+		GcMod.PatchAll(harmony); // nur die Patches dieser Mod (alle Mods des Pakets in einer DLL)
 		Module.MenuGroup(key => GcLoc.Get("vpp_" + key))
 			.Main("linked", LinkedChests.Plugin.Enabled, () => LinkedChests.Plugin.Blocked, "GC_LinkedChests")
 			.Sub("linked_key", LinkedChests.Plugin.LinkKey)

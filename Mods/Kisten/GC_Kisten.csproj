@@ -4,7 +4,7 @@
     <AssemblyName>GC_Kisten</AssemblyName>
     <RootNamespace>GC.ValheimPlusPlus.ModKisten</RootNamespace>
     <Product>GC_Kisten</Product>
-    <Version>1.5.1</Version>
+    <Version>1.6.0</Version>
     <GcPaket>ValheimPlusPlus</GcPaket>
     <GcId>kisten</GcId>
     <GcStufe>3</GcStufe>

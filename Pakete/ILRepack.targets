@@ -1,0 +1,41 @@
+<Project>
+  <!--
+    Führt die Mods eines Pakets zu einer DLL zusammen (Gorduan, 26.10.2026: „setze die drei Mods wieder zusammen“, wegen
+    Thunderstore). Eingebunden über ILRepackTargetsFile in den Paket-Projekten Pakete\<Paket>\*.csproj; ILRepack.Lib.MSBuild.Task
+    lässt dann sein eigenes Standard-Ziel aus.
+
+    Eingabe: die leere Assembly des Paket-Projekts (gibt der DLL Name und Version) und die DLLs der Mods aus den
+    ProjectReferences. GC_Kern bleibt eine eigene DLL in jedem Paket (Gorduan: „jede Mod muss unabhängig der anderen beiden
+    funktionieren können“; BepInEx lädt ihn einmal). Jede Mod bleibt ein eigenes Plugin mit eigener GUID und cfg.
+
+    Gleichnamige Typen gibt es nur als interne Kopie je Mod (ServerPlugin, ClientPlugin und VppPlugin halten je Mod Logger
+    und Modul, Activation steckt in Traglimit und Vergleich, dazu die vom Compiler und vom Publicizer erzeugten Attribute).
+    Interne Dubletten benennt ILRepack von selbst um („<GUID>Name“) und hält sie je Mod getrennt. Bewusst ohne
+    AllowedDuplicateNamespaces/Union: Damit verschmilzt ILRepack Dubletten zu einem Typ (Prüfung 26.10.2026: alle
+    Server-Mods teilten sich dann ein ServerPlugin). Öffentliche Dubletten brechen den Bau ab; build.ps1 prüft das Ergebnis.
+    CopyAttributes/AllowMultiple: Die Assembly-Attribute [IgnoresAccessChecksTo] (Publicizer) kämen sonst nur von der leeren
+    Paket-Assembly, deren Attributtyp ILRepack umbenennt; so ist auch die Fassung mit dem Originalnamen dabei.
+  -->
+  <Target Name="GcMerge" AfterTargets="Build" Condition="'$(GcPaketZiel)' != ''">
+    <ItemGroup>
+      <_GcMergeInput Include="$(TargetPath)" />
+      <_GcMergeInput Include="@(ReferencePath)" Condition="'%(ReferencePath.ReferenceSourceTarget)' == 'ProjectReference' And '%(ReferencePath.Filename)' != 'GC_Kern'" />
+    </ItemGroup>
+    <PropertyGroup>
+      <_GcMergeDir>$(GcPackageOut)\Gorduan-$(GcPaketZiel)</_GcMergeDir>
+      <_GcJotunnDir>$([System.IO.Path]::GetDirectoryName('$(JotunnDll)'))</_GcJotunnDir>
+    </PropertyGroup>
+    <MakeDir Directories="$(_GcMergeDir)" />
+    <ILRepack
+      Parallel="true"
+      DebugInfo="false"
+      Internalize="false"
+      AllowDuplicateResources="false"
+      TargetKind="SameAsPrimaryAssembly"
+      InputAssemblies="@(_GcMergeInput)"
+      OutputFile="$(_GcMergeDir)\$(AssemblyName).dll"
+      LibraryPath="$(Managed);$(GamePath)\BepInEx\core;$(_GcJotunnDir);$(GcModsRoot)Kern\bin"
+      CopyAttributes="true"
+      AllowMultiple="true" />
+  </Target>
+</Project>

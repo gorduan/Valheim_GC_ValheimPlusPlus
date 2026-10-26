@@ -202,7 +202,7 @@ public static class GcKern
 {
 	public const string Guid = "gorduan.gc.kern";
 	public const string Name = "GC_Kern";
-	public const string Version = "1.1.1"; // gleich <Version> in GC_Kern.csproj, build.ps1 prüft das
+	public const string Version = "1.2.0"; // gleich <Version> in GC_Kern.csproj, build.ps1 prüft das
 
 	/// <summary>Anfang der GUID jeder GC-Mod; dahinter steht ihre ID.</summary>
 	public const string GuidPrefix = "gorduan.gc.";

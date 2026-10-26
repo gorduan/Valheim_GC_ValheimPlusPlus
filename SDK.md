@@ -1,17 +1,17 @@
 # GC-SDK (Gorduan)
 
-Mit dem SDK entstehen GC-Mods für Valheim (BepInEx, Jötunn). Jede Funktion ist eine eigene Mod mit eigenem Ordner. Alle bauen auf dem **GC_Kern** auf. Stand: 24.10.2026.
+Mit dem SDK entstehen GC-Mods für Valheim (BepInEx, Jötunn). Jede Funktion ist eine eigene Mod mit eigenem Ordner. Alle bauen auf dem **GC_Kern** auf. Stand: 26.10.2026.
 
 ## Aufbau
 
 | Teil | Ort | Wozu |
 |---|---|---|
 | GC_Kern | `Kern\` | Laufzeit des SDK, ohne ihn startet keine GC-Mod (Einzelheiten unten) |
-| Mods | `Mods\<Name>\` | eine Funktion je Mod, als eigene DLL in einem Paket (`GcPaket`, siehe „Pakete“) |
+| Mods | `Mods\<Name>\` | eine Funktion je Mod, ein eigenes Plugin in einem Paket (`GcPaket`, siehe „Pakete“) |
+| Pakete | `Pakete\<Paket>\` | je ein Projekt, das die Mods des Pakets zu einer DLL zusammenführt (ILRepack, `Pakete\ILRepack.targets`), dazu icon.png |
 | Vorlage | `Vorlage\GC_Beispiel\` | kleinste lauffähige Mod zum Kopieren |
-| Bau | `build.ps1` | Mods bauen, Pakete, Zips, Katalog, Auswahl-Programm |
-| Auswahl-Programm | `Programm\GC-Mod-Auswahl.html` | Vorlage; `build.ps1` füllt sie zu `build-output\GC-Mod-Auswahl.html` |
-| Steckbrief | `Directory.Build.targets` | macht aus den Gc*-Eigenschaften die Plugin-Attribute |
+| Bau | `build.ps1` | Mods bauen, Pakete, Zips, Katalog, Prüfung der Paket-DLLs |
+| Steckbrief | `Directory.Build.targets` | macht aus den Gc*-Eigenschaften die Plugin-Attribute und die Patch-Liste |
 
 Der Kern bringt mit:
 - das Menü **GC Option** (Pause-Menü und Hauptmenü);
@@ -24,13 +24,21 @@ Der Kern bringt mit:
 ## Pakete
 
 Gorduan, 24.10.2026: Es bleiben die vier Pakete **GC_Server**, **GC_Client**, **GC_Guilds** und **ValheimPlusPlus**; in r2modman kommen nur sie ins Profil.
-- In ihren Ordnern liegt jede Mod als eigene DLL. Der Server-Besitzer entscheidet selbst, welche DLLs er behält oder löscht.
-- GC_Kern.dll liegt in GC_Server, GC_Client und ValheimPlusPlus. BepInEx lädt ihn einmal und überspringt die anderen Kopien („duplicate“).
-- DLLs der Seite „Alle“ (und „ServerOptional“, wenn der Server sie hat) müssen bei Server und Spielern gleich sein. Das Auswahl-Programm baut beides aus einer Auswahl.
+- **Eine Mod-DLL je Paket** (Gorduan, 26.10.2026, wegen Thunderstore): `GC_Server.dll`, `GC_Client.dll`, `GC_ValheimPlusPlus.dll`. Bis 1.8.1/1.6.1/1.5.1 lag jede Mod als eigene DLL im Paket. Jede Mod bleibt ein eigenes Plugin mit eigener GUID, cfg und eigenem Schalter.
+- **Mods ausschalten:** im Menü GC Option, Reiter Mods, oder die GUID in `BepInEx/config/GC_Kern/aus.txt` eintragen; gilt ab dem nächsten Start (Vorlader `GC_ModSchalter_<Paket>`).
+- GC_Kern.dll liegt in GC_Server, GC_Client und ValheimPlusPlus, damit jedes Paket allein läuft. BepInEx lädt ihn einmal und überspringt die anderen Kopien („duplicate“).
+- Mods der Seite „Alle“ (und „ServerOptional“, wenn der Server sie hat) müssen bei Server und Spielern gleich an oder aus sein.
 - Alle Mods eines Pakets tragen die Version des Pakets; `build.ps1` bricht ab, wenn eine abweicht. Der Kern hat seine eigene Version.
 - **Kern geändert:** Kern-Version erhöhen (in `Kern\Api\GcKern.cs` und `Kern\GC_Kern.csproj`, `build.ps1` prüft, dass beide gleich sind) und alle drei Pakete gemeinsam veröffentlichen. BepInEx lädt je GUID die höchste Version, bei gleicher Version die zuerst gefundene Datei; sonst liefe womöglich ein alter Kern aus einem anderen Paket.
-- Der Server bekommt alle DLLs, auch die nur beim Spieler laufen: Die Stufe des Servers ist die höchste Stufe seiner GC-Mods.
+- Der Server bekommt alle Pakete, auch die Mods, die nur beim Spieler laufen: Die Stufe des Servers ist die höchste Stufe seiner GC-Mods.
 - GC_Guilds baut weiter `build-gc.ps1` im alten Baum (`mods\GC`).
+
+**Regeln für Mods in einer Paket-DLL:**
+- Jede Mod spielt nur ihre eigenen Harmony-Patches ein: `GcMod.PatchAll(harmony)`. Nie `harmony.PatchAll(Assembly)`, das träfe in der Paket-DLL alle Mods, auch ausgeschaltete.
+- Die Patch-Liste `GcMod.PatchTypes` entsteht aus den Klassen, deren `[HarmonyPatch` am Zeilenanfang steht (Namespace der Datei, keine verschachtelten Patch-Klassen). `build.ps1` vergleicht sie mit den Patch-Klassen der fertigen Mod-DLL.
+- Gleichnamige Typen in zwei Mods nur `internal`: ILRepack benennt sie um und hält sie getrennt (z. B. `ServerPlugin` mit Logger und Modul je Mod). Öffentliche Dubletten brechen den Bau ab.
+- Eine Mod darf eine andere nur direkt nutzen (`GcBraucht` + `ProjectReference`), wenn beide im selben Paket liegen. Sonst gibt es deren DLL zur Laufzeit nicht; dann über `GcHooks`.
+- Neue Mod: auch in `Pakete\<Paket>\<DLL>.csproj` als `ProjectReference` eintragen. `build.ps1` meldet ein fehlendes Plugin.
 
 | Paket | Inhalt |
 |---|---|
@@ -40,7 +48,7 @@ Gorduan, 24.10.2026: Es bleiben die vier Pakete **GC_Server**, **GC_Client**, **
 
 ## Stufen
 
-Die Stufe sagt, wie weit eine Mod das Spiel von Vanilla entfernt. Im Menü und im Auswahl-Programm steht jede Mod unter ihrer Stufe.
+Die Stufe sagt, wie weit eine Mod das Spiel von Vanilla entfernt. Im Menü steht jede Mod unter ihrer Stufe.
 
 | Stufe | Name | Was sie verändert |
 |---|---|---|
@@ -75,18 +83,19 @@ Die Stufe sagt, wie weit eine Mod das Spiel von Vanilla entfernt. Im Menü und i
 | `GcFremd` | `randyknapp.mods.epicloot` | fremde Mods, mit denen sie mehr kann (weiche Abhängigkeit) |
 | `GcAlteConfig` | `gorduan.gc_server.cfg` | alte cfg-Datei(en), aus denen der erste Start die Werte übernimmt |
 | `GcAusgleich` | `5` | Schwierigkeitsausgleich in % je besiegtem Boss, solange die Mod läuft |
-| `GcPaket` | `GC_Server` | Paket, in dessen Ordner die DLL kommt (`GC_Server`, `GC_Client` oder `ValheimPlusPlus`); `Version` = Version des Pakets |
-| `GcTitel`, `GcBeschreibung` | | für manifest.json, README, Katalog und Auswahl-Programm |
+| `GcPaket` | `GC_Server` | Paket, in dessen DLL die Mod kommt (`GC_Server`, `GC_Client` oder `ValheimPlusPlus`); `Version` = Version des Pakets |
+| `GcTitel`, `GcBeschreibung` | | für README und Katalog |
 
 Daraus erzeugt das SDK `obj\GcModInfo.g.cs`:
 - an der Klasse `Plugin` (partial) die Attribute `[BepInPlugin]`, `[BepInDependency]` und `[NetworkCompatibility]`;
-- dazu die Klasse `GcMod` mit `Guid`, `Name`, `Version`, `Stufe` und `Info`.
+- dazu die Klasse `GcMod` mit `Guid`, `Name`, `Version`, `Stufe`, `Info`, `PatchTypes` und `PatchAll(harmony)`.
 
 ## Eine neue Mod
 
 1. `Vorlage\GC_Beispiel` nach `Mods\<Name>` kopieren, die .csproj in `GC_<Name>.csproj` umbenennen, die Gc*-Eigenschaften anpassen.
 2. `dotnet sln GCMods.slnx add Mods\<Name>\GC_<Name>.csproj`
-3. `powershell -ExecutionPolicy Bypass -File build.ps1`
+3. In `Pakete\<Paket>\<DLL>.csproj` eine `ProjectReference` mit `Private="false"` auf die neue .csproj eintragen.
+4. `powershell -ExecutionPolicy Bypass -File build.ps1`
 
 Grundmuster in `Plugin.cs`:
 
@@ -102,7 +111,7 @@ public partial class Plugin : BaseUnityPlugin
 		Regel = Gc.BindSynced(Config, "1 - Abschnitt", "Regel", 5f, "…");          // vom Server, nur Admins
 		Module.TakeOverOldSettings();                             // erster Start: alte Werte übernehmen
 		Module.IsOn = () => Enabled.Value;                        // Hauptschalter (Boss-Fortschritt)
-		new Harmony(GcMod.Guid).PatchAll(typeof(Plugin).Assembly);
+		GcMod.PatchAll(new Harmony(GcMod.Guid));                  // nur die eigenen Patches (Paket-DLL)
 		Module.MenuGroup(key => GcLoc.Get("meinprefix_" + key))
 			.Main("enabled", Enabled)
 			.Sub("regel", Regel, 1, " %");
@@ -182,7 +191,7 @@ Beispiele:
 
 Gemeinsame Schlüssel ohne Abhängigkeit stehen in `GcKeys`, z. B. `LeashHolder`, `LeashTied`, `LeashPost`, `LeashMax` und `CareLevel` von GC_Tiere. Ohne GC_Tiere sind sie nie gesetzt.
 
-Bei harter Abhängigkeit (`GcBraucht`) darf eine Mod die andere direkt nutzen:
+Bei harter Abhängigkeit (`GcBraucht`) im selben Paket darf eine Mod die andere direkt nutzen:
 - `ProjectReference` mit `Private="false"`;
 - `InternalsVisibleTo` in der Ziel-Mod, siehe `Mods\Tiere\Friends.cs`.
 
@@ -196,15 +205,13 @@ Bei harter Abhängigkeit (`GcBraucht`) darf eine Mod die andere direkt nutzen:
 ## Bauen und weitergeben
 
 - **Spielpfade:** `GamePaths.user.props` (nicht im Git) mit `GamePath` (Valheim-Ordner mit BepInEx) und `JotunnDll`, Vorlage `GamePaths.user.props.example`. Ohne gültige Pfade bricht der Bau mit einer Meldung ab.
-- `build.ps1` baut alles und legt `build-output\GCMods\Gorduan-<Paket>\` an, je mit den DLLs, manifest.json, README.md (Liste der DLLs) und icon.png (aus `Pakete\<Paket>\`).
-- **Öffentliche Repos** (MIT, Copyright Gorduan, seit 25.10.2026): `github.com/gorduan/Valheim_GC_Server`, `Valheim_GC_Client`, `Valheim_GC_ValheimPlusPlus`, je ein Paket samt Kern. Erzeugt und aktualisiert sie `python -I tools\oeffentlich.py` aus den getrackten Dateien (ohne `tools`, `Programm`; „Gorduan“ wird dort „Gorduan“). Die `website_url` der Manifeste zeigt dorthin.
-- Dazu kommen `build-output\GCMods-zips\` (ein Zip je Paket und `katalog.json`) und `build-output\GC-Mod-Auswahl.html`.
+- `build.ps1` baut alles und legt `build-output\GCMods\Gorduan-<Paket>\` an, je mit der Paket-DLL, GC_Kern.dll, dem Vorlader (`patchers`), manifest.json, README.md (Liste der Mods) und icon.png (aus `Pakete\<Paket>\`).
+- Danach prüft `build.ps1` jede Paket-DLL: jede Mod des Pakets als Plugin mit der Paketversion, keine zusätzlichen Plugins, Patch-Listen wie oben. Die Prüfung liest nur Metadaten (ReflectionOnly) und läuft deshalb nur in Windows PowerShell 5.1 (`powershell`), unter `pwsh` entfällt sie mit Hinweis.
+- **Öffentliche Repos** (MIT, Copyright Gorduan, seit 25.10.2026): `github.com/gorduan/Valheim_GC_Server`, `Valheim_GC_Client`, `Valheim_GC_ValheimPlusPlus`, je ein Paket samt Kern. Erzeugt und aktualisiert sie `python -I tools\oeffentlich.py` aus den getrackten Dateien (ohne `tools`; „Gorduan“ wird dort „Gorduan“). Die `website_url` der Manifeste zeigt dorthin.
+- **Freigabe** (Gorduan, 26.10.2026): Beschreibung und README sagen, dass die Mods zum GC-Discord-Server gehören und jeder sie frei nutzen, verändern und hochladen darf (MIT).
+- Dazu kommt `build-output\GCMods-zips\` (ein Zip je Paket und `katalog.json`).
 - Ins Profil „GC Discord“: `python -I tools\deploy_profil.py` (r2modman geschlossen; alte Stände ins Archiv).
-- **Auswahl-Programm:** eine HTML-Datei, läuft in jedem Browser ohne Installation.
-  - Es baut den Server-Upload und die Spieler-Zips für r2modman.
-  - In Chrome, Edge und Opera installiert es auch direkt in einen BepInEx-Ordner. Abgewählte GC-DLLs werden dabei zu `.dll.aus` umbenannt, nicht gelöscht.
-  - Es speichert und lädt eine Auswahl-Datei.
-  - Es prüft einen Ordner auf fehlende und überzählige DLLs und auf alte Dateien (GC_Server.dll, GC_Client.dll, ValheimPlusPlus.dll von vor dem Umbau, Einzelpaket-Ordner vom 20.10.2026).
+- Das Auswahl-Programm (`GC-Mod-Auswahl.html`, Mods als einzelne DLLs wählen) gibt es seit 26.10.2026 nicht mehr (Gorduan): Mods schaltet man im Menü GC Option aus.
 - **Versionen:** je Paket nur einmal je Veröffentlichung erhöhen, ab der Version im Profil Default. Neue Funktionen oder Pflicht-Update: zweite Stelle, Fehlerbehebung: dritte Stelle.
 
 ## Valheim-Fallen (gesammelt)

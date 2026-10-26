@@ -40,6 +40,9 @@ public static class GcLoc
 		{
 			if (!loadedAssemblies.Add(asm))
 			{
+				// Seit 26.10.2026 liegen die Mods eines Pakets in einer DLL: Die eingebetteten Texte hat die erste Mod schon
+				// geladen, die Überschreib-Datei gehört aber zu jeder Mod einzeln.
+				LoadExternal(modName);
 				return;
 			}
 		}

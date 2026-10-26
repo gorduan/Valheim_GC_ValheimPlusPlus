@@ -4,7 +4,7 @@
     <AssemblyName>GC_Baeume</AssemblyName>
     <RootNamespace>GC.ValheimPlusPlus.ModBaeume</RootNamespace>
     <Product>GC_Baeume</Product>
-    <Version>1.5.1</Version>
+    <Version>1.6.0</Version>
     <GcPaket>ValheimPlusPlus</GcPaket>
     <GcId>baeume</GcId>
     <GcStufe>4</GcStufe>

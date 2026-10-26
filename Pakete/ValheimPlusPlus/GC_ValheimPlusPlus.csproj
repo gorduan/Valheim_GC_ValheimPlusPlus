@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Paket ValheimPlusPlus (Gorduan, 26.10.2026: eine Mod-DLL je Paket, wegen Thunderstore): hat keine eigenen Quellen, sondern führt die
+    DLLs seiner Mods zu GC_ValheimPlusPlus.dll zusammen (..\ILRepack.targets). GC_Kern und der Vorlader bleiben eigene DLLs im Paket.
+    Die Mitglieder sind die Mods mit GcPaket = ValheimPlusPlus; build.ps1 prüft, dass beide Listen übereinstimmen.
+  -->
+  <PropertyGroup>
+    <AssemblyName>GC_ValheimPlusPlus</AssemblyName>
+    <RootNamespace>GC.Pakete</RootNamespace>
+    <Version>1.6.0</Version>
+    <GcPaketZiel>ValheimPlusPlus</GcPaketZiel>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <ILRepackTargetsFile>$(MSBuildThisFileDirectory)..\ILRepack.targets</ILRepackTargetsFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="ILRepack.Lib.MSBuild.Task" Version="2.0.44.1" PrivateAssets="all" />
+    <ProjectReference Include="..\..\Mods\Baeume\GC_Baeume.csproj" Private="false" />
+    <ProjectReference Include="..\..\Mods\BasisEssen\GC_BasisEssen.csproj" Private="false" />
+    <ProjectReference Include="..\..\Mods\Kisten\GC_Kisten.csproj" Private="false" />
+    <ProjectReference Include="..\..\Mods\Schloesser\GC_Schloesser.csproj" Private="false" />
+    <ProjectReference Include="..\..\Mods\StackFix\GC_StackFix.csproj" Private="false" />
+  </ItemGroup>
+</Project>

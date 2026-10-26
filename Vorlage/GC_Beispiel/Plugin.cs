@@ -28,7 +28,7 @@ public partial class Plugin : BaseUnityPlugin
 		// 3. Werte aus einer alten cfg übernehmen (GcAlteConfig in der .csproj), danach Hauptschalter und Patches.
 		Module.TakeOverOldSettings();
 		Module.IsOn = () => Enabled.Value; // für den Boss-Fortschritt: läuft die Mod gerade?
-		new Harmony(GcMod.Guid).PatchAll(typeof(Plugin).Assembly);
+		GcMod.PatchAll(new Harmony(GcMod.Guid)); // nur die Patches dieser Mod (alle Mods des Pakets liegen in einer DLL)
 
 		// 4. Eintrag im Menü GC Option, im Abschnitt der Stufe. Texte: translations\texte.<Sprache>.yml dieser Mod.
 		Module.MenuGroup(key => GcLoc.Get("gcbeispiel_" + key))
