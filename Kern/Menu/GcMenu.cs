@@ -59,6 +59,9 @@ public sealed class GcMenuGroup
 	private readonly List<object> items;
 	private readonly Func<string, string> text;
 
+	/// <summary>ID der GC-Mod (gesetzt von GcKern.MenuGroup): jede Zeile wird Live-Wert {gc_&lt;id&gt;_&lt;key&gt;} und DeepTip-Begriff.</summary>
+	internal string? ModId;
+
 	internal GcMenuGroup(List<object> items, Func<string, string> text)
 	{
 		this.items = items;
@@ -67,17 +70,18 @@ public sealed class GcMenuGroup
 
 	/// <param name="requires">Zeile nur zeigen, wenn das zutrifft (z. B. eine andere Mod ist installiert).</param>
 	/// <param name="locked">Gerade nicht änderbar, aber sichtbar (z. B. ValheimPlus in einer Welt).</param>
-	public GcMenuGroup Main(string key, ConfigEntryBase entry, Func<bool>? blocked = null, string oldMod = "", Func<string>? note = null, double step = 0, string unit = "", Func<bool>? requires = null, Func<bool>? locked = null)
+	/// <param name="lockedText">Warum die Zeile gesperrt ist (ohne Angabe: „Nur im Hauptmenü änderbar“, wie bei ValheimPlus).</param>
+	public GcMenuGroup Main(string key, ConfigEntryBase entry, Func<bool>? blocked = null, string oldMod = "", Func<string>? note = null, double step = 0, string unit = "", Func<bool>? requires = null, Func<bool>? locked = null, Func<string>? lockedText = null)
 	{
-		return Add(key, entry, 0, blocked, oldMod, note, step, unit, requires, locked);
+		return Add(key, entry, 0, blocked, oldMod, note, step, unit, requires, locked, lockedText);
 	}
 
-	public GcMenuGroup Sub(string key, ConfigEntryBase entry, double step = 0, string unit = "", Func<bool>? blocked = null, string oldMod = "", Func<bool>? requires = null, Func<bool>? locked = null)
+	public GcMenuGroup Sub(string key, ConfigEntryBase entry, double step = 0, string unit = "", Func<bool>? blocked = null, string oldMod = "", Func<bool>? requires = null, Func<bool>? locked = null, Func<string>? lockedText = null)
 	{
-		return Add(key, entry, 1, blocked, oldMod, null, step, unit, requires, locked);
+		return Add(key, entry, 1, blocked, oldMod, null, step, unit, requires, locked, lockedText);
 	}
 
-	private GcMenuGroup Add(string key, ConfigEntryBase entry, int level, Func<bool>? blocked, string oldMod, Func<string>? note, double step, string unit, Func<bool>? requires, Func<bool>? locked)
+	private GcMenuGroup Add(string key, ConfigEntryBase entry, int level, Func<bool>? blocked, string oldMod, Func<string>? note, double step, string unit, Func<bool>? requires, Func<bool>? locked, Func<string>? lockedText)
 	{
 		Func<string, string> t = text;
 		Dictionary<string, object> item = new()
@@ -107,6 +111,16 @@ public sealed class GcMenuGroup
 		if (locked != null)
 		{
 			item["locked"] = locked;
+		}
+		if (lockedText != null)
+		{
+			item["lockedText"] = lockedText;
+		}
+		if (ModId != null)
+		{
+			// DeepTip (seit 1.9.0): Wert als {gc_<mod>_<key>} in den Glossaren, Name der Zeile öffnet den Eintrag
+			GcDeepTip.Value($"gc_{ModId}_{key}", () => GcDeepTip.Format(entry, unit, value => t("enum_" + value)));
+			item["deeptip"] = level == 0 ? new[] { $"gc.{ModId}.{key}", $"gc.{ModId}" } : new[] { $"gc.{ModId}.{key}" };
 		}
 		items.Add(item);
 		return this;
@@ -346,6 +360,8 @@ public sealed partial class GcMenu
 			registry.RemoveAll(o => o is Dictionary<string, object> d && d.TryGetValue("id", out object v) && v is string s && s == id);
 			registry.Add(data);
 		}
+		// gleiche id ersetzen statt anhängen (Review 27.10.2026: ValheimPlus baut seinen Abschnitt bei jedem Umschalten neu)
+		ownSections.RemoveAll(d => d.TryGetValue("id", out object v) && v is string s && s == id);
 		ownSections.Add(data);
 		return new GcMenuSection(data, text);
 	}
@@ -876,6 +892,12 @@ public sealed partial class GcMenu
 			desc = FlowText(left.transform, description, 15, MutedColor);
 		}
 
+		// DeepTip: Maus auf dem Namen öffnet die Erklärung der Funktion (gc.<mod>.<key>, bei Funktionen sonst gc.<mod>)
+		if (item.TryGetValue("deeptip", out object tipKeys) && tipKeys is string[] keys && GcDeepTip.Mark(name.gameObject, keys))
+		{
+			name.raycastTarget = true;
+		}
+
 		// Mitte: für wen die Einstellung gilt
 		GameObject scopeGo = new("Scope", typeof(RectTransform), typeof(LayoutElement));
 		scopeGo.transform.SetParent(rowGo.transform, false);
@@ -1352,7 +1374,8 @@ public sealed partial class GcMenu
 		}
 		if (Locked(row))
 		{
-			return ui("scope_mainmenu"); // z. B. ValheimPlus: nur im Hauptmenü änderbar
+			// eigener Grund der Mod (z. B. Boss-Fortschritt: Automatik an), sonst wie bei ValheimPlus: nur im Hauptmenü änderbar
+			return row.Item.ContainsKey("lockedText") ? TextOf(row.Item, "lockedText") : ui("scope_mainmenu");
 		}
 		if (IsReadOnly(row))
 		{
@@ -1719,6 +1742,10 @@ public sealed partial class GcMenu
 	/// anderer Mods (Serverknopf, Mods) ragte „Beenden“ unten aus dem Bild. Die Liste rückt deshalb so weit nach oben, dass der
 	/// letzte Eintrag mit etwas Rand im Bild bleibt; jedes Bild geprüft, weil andere Mods ihre Knöpfe später einfügen.
 	/// </summary>
+	private int fitButtons = -1;
+	private int fitHeight;
+	private float nextFit;
+
 	private void FitMainMenu()
 	{
 		FejdStartup? start = FejdStartup.instance;
@@ -1726,6 +1753,16 @@ public sealed partial class GcMenu
 		{
 			return;
 		}
+		// zweimal je Sekunde reicht, solange Knopfzahl und Bildgröße gleich bleiben (Review 27.10.2026: jedes Bild
+		// GetComponentsInChildren und Ecken je Knopf)
+		int buttons = start.m_menuList.transform.childCount;
+		if (buttons == fitButtons && Screen.height == fitHeight && Time.unscaledTime < nextFit)
+		{
+			return;
+		}
+		fitButtons = buttons;
+		fitHeight = Screen.height;
+		nextFit = Time.unscaledTime + 0.5f;
 		RectTransform list = (RectTransform)start.m_menuList.transform;
 		Canvas? canvas = list.GetComponentInParent<Canvas>();
 		if (canvas == null)

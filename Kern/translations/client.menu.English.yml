@@ -101,7 +101,7 @@ gccm_t_portalguard_key_name: "Key: restore the old name"
 gccm_t_portalguard_key_desc: "Hold it and use the portal (default Shift+E). E alone still opens the rename dialog."
 
 gccm_t_portalnames_name: "Portal name list"
-gccm_t_portalnames_desc: "When renaming a portal, a list of saved names appears next to it. With GC_Server and GC_Guilds, server and guild lists are added."
+gccm_t_portalnames_desc: "When renaming a portal, a list of saved names appears next to it. If the server has the mod, its list is added, with GC_Guilds also your guild's."
 gccm_t_portalnames_click_name: "A click renames right away"
 gccm_t_portalnames_click_desc: "Off: the name is only written into the input field."
 

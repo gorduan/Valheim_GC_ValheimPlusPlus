@@ -22,12 +22,13 @@ namespace GC.ValheimPlusPlus.StackFix;
 /// Diese Mod erlaubt seit ValheimPlusPlus 1.2.0 nur Ausrüstung, die keine Waffe und kein Werkzeug ist (Rüstung,
 /// Schilde, Gürtel, Ringe und andere Schmuckstücke). Waffen, Fackeln und Werkzeuge folgen weiter der V+-Einstellung.
 ///
-/// EpicLoot-Materialien (Staub, Essenzen, Reagenzien, Runensteine, Splittersteine, Meißel): EpicLoot kennzeichnet sie
-/// über das Feld m_ammoType („…|MagicCraftingMaterial", „…|Runestone", „…|ShardStone", EpicLoot
-/// CraftingItemExtensions). V+ hält jedes Item mit m_ammoType für Munition (ItemDataExtensions.IsAmmo) und lässt sie
-/// bei [AutoStack] ignoreAmmo = true im Inventar, in der offenen Kiste wie in den Kisten ringsum (Gorduan, Spieltest
-/// 13.10.2026: „Keine Gegenstände zum Stapeln"). Diese Mod lässt sie wieder einlagern; echte Munition (Typ Ammo,
-/// AmmoNonEquipable) folgt weiter der V+-Einstellung.
+/// EpicLoot-Materialien (Staub, Essenzen, Reagenzien, Runensteine, Splittersteine, Unidentifiziertes, Meißel): EpicLoot
+/// kennzeichnet sie über das Feld m_ammoType („…|MagicCraftingMaterial", „…|Runestone", „…|ShardStone",
+/// „…|Unidentified", „…|ShardSlotChisel", EpicLoot CraftingItemExtensions und Shards.IsShard). V+ hält jedes Item mit
+/// m_ammoType für Munition (ItemDataExtensions.IsAmmo) und lässt sie bei [AutoStack] ignoreAmmo = true im Inventar, in
+/// der offenen Kiste wie in den Kisten ringsum (Gorduan, Spieltest 13.10.2026: „Keine Gegenstände zum Stapeln"). Diese Mod
+/// lässt sie wieder einlagern; echte Munition (Typ Ammo, AmmoNonEquipable) und Items anderer Mods mit m_ammoType folgen
+/// weiter der V+-Einstellung.
 /// Geschützt bleiben:
 ///  * angelegte Items (wie Vanilla),
 ///  * die Schnellleiste (oberste Inventarreihe, einstellbar),
@@ -55,29 +56,30 @@ internal static class Plugin
 
 		if (Gc.VPlusLoaded)
 		{
+			// Review 27.10.2026: abgesichert und über Positionsparameter, eine geänderte V+-Signatur schaltet nur diesen Fix ab
 			Type? patch = AccessTools.TypeByName("ValheimPlus.GameClasses.Inventory_StackAll_Patch");
-			MethodInfo? method = patch == null ? null : AccessTools.Method(patch, "ContainsItemByName", new[] { typeof(Inventory), typeof(string) });
-			if (method != null)
+			MethodInfo? method = VppPatch.Find(patch, "ContainsItemByName", new[] { typeof(Inventory), typeof(string) });
+			if (VppPatch.Try(harmony, method, "Inventory_StackAll_Patch.ContainsItemByName", postfix: new HarmonyMethod(typeof(Plugin), nameof(ContainsItemByNamePostfix))))
 			{
-				harmony.Patch(method, postfix: new HarmonyMethod(typeof(Plugin), nameof(ContainsItemByNamePostfix)));
-				Log.LogInfo("ValheimPlus erkannt: Auto-Stack lagert Rüstung, Schilde, Schmuck und EpicLoot-Materialien wieder ein (Waffen, Werkzeuge und Munition nach V+-Einstellung).");
+				Log.LogInfo("ValheimPlus erkannt: 1 von 1 V+-Einhängungen aktiv. Auto-Stack lagert Rüstung, Schilde, Schmuck und EpicLoot-Materialien wieder ein (Waffen, Werkzeuge und Munition nach V+-Einstellung).");
 			}
 			else
 			{
-				Log.LogWarning("ValheimPlus gefunden, aber Inventory_StackAll_Patch.ContainsItemByName nicht. Ausrüstungs-Fix inaktiv.");
+				Log.LogWarning("ValheimPlus: 0 von 1 V+-Einhängungen aktiv (Inventory_StackAll_Patch.ContainsItemByName). Ausrüstungs-Fix inaktiv.");
 			}
 		}
 	}
 
-	private static void ContainsItemByNamePostfix(Inventory inventory, string name, ref bool __result)
+	/// <summary>V+ Inventory_StackAll_Patch.ContainsItemByName(Inventory inventory, string name), Parameter per Position.</summary>
+	private static void ContainsItemByNamePostfix(Inventory __0, string __1, ref bool __result)
 	{
-		if (__result || !On)
+		if (__result || !On || __0 == null)
 		{
 			return;
 		}
-		foreach (ItemDrop.ItemData item in inventory.m_inventory)
+		foreach (ItemDrop.ItemData item in __0.m_inventory)
 		{
-			if (item.m_shared.m_name != name)
+			if (item.m_shared.m_name != __1)
 			{
 				continue;
 			}
@@ -89,15 +91,36 @@ internal static class Plugin
 		}
 	}
 
+	/// <summary>Endungen von m_ammoType, mit denen EpicLoot 0.15.2 seine Materialien (Typ Material) kennzeichnet.</summary>
+	private static readonly string[] EpicLootMaterialTags = { "MagicCraftingMaterial", "Runestone", "ShardStone", "ShardSlotChisel", "Unidentified" };
+
 	/// <summary>
-	/// Hat ein m_ammoType (für V+ also „Munition"), ist aber keine: weder Munition noch Ausrüstung, Essen oder Getränk.
-	/// So kennzeichnet EpicLoot seine Materialien; andere Mods, die das Feld genauso nutzen, gehören dazu.
+	/// EpicLoot-Material, genau wie EpicLoot 0.15.2 es erkennt (Review 27.10.2026: vorher zählte jedes nicht ausrüstbare
+	/// Item mit m_ammoType): Typ Material mit m_ammoType auf „MagicCraftingMaterial" (Staub, Essenzen, Reagenzien, alte
+	/// Splitter), „Runestone" (auch geätzte Runensteine), „ShardStone", „ShardSlotChisel" oder „Unidentified"
+	/// (CraftingItemExtensions.IsMagicCraftingMaterial/IsRunestone/IsUnidentifiedMaterial, Shards.IsShard). Den Meißel
+	/// erkennt EpicLoot (IsShardSlotChisel) ohne Typprüfung; welchen Typ er im Asset-Bundle hat, steht nicht im Code. Damit er
+	/// sicher dabei bleibt, gilt er wie bei EpicLoot auch ohne Typ Material, aber nie als Munition oder Ausrüstung.
 	/// </summary>
 	private static bool TaggedMaterial(ItemDrop.ItemData item)
 	{
-		ItemDrop.ItemData.SharedData shared = item.m_shared;
-		return !string.IsNullOrEmpty(shared.m_ammoType) && !IsAmmo(item) && !item.IsEquipable() && !shared.m_isDrink
-			&& !(shared.m_itemType == ItemDrop.ItemData.ItemType.Consumable && (shared.m_food > 0f || shared.m_foodStamina > 0f || shared.m_foodEitr > 0f));
+		string? tag = item.m_shared.m_ammoType;
+		if (string.IsNullOrEmpty(tag))
+		{
+			return false;
+		}
+		if (item.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Material)
+		{
+			foreach (string suffix in EpicLootMaterialTags)
+			{
+				if (tag!.EndsWith(suffix, StringComparison.Ordinal))
+				{
+					return true;
+				}
+			}
+			return false;
+		}
+		return tag!.EndsWith("|ShardSlotChisel", StringComparison.Ordinal) && !IsAmmo(item) && !item.IsEquipable();
 	}
 
 	private static bool IsAmmo(ItemDrop.ItemData item)

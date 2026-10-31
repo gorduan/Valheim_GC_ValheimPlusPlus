@@ -1,0 +1,49 @@
+{
+  "$locale": "de",
+  "gc.kisten": {
+    "title": "Verbundene Kisten und Gebäude-Menü",
+    "short": "Verbundene Kisten zeigen ihren Inhalt gemeinsam; das Gebäude-Menü zeigt Schmelze und Co. und wählt Kisten für ValheimPlus.",
+    "body": "Die Mod bringt drei Funktionen:\n- [[gc.kisten.linked]]: mehrere Kisten als ein großes Lager\n- [[gc.kisten.stationmenu]]: Inhalt von Schmelze und Co. sehen, zurücknehmen, einfüllen\n- [[gc.kisten.stationchests]] für ValheimPlus, dazu der [[gc.kisten.table|Verzaubertisch aus Kisten]]\n\nSie gehört zum Paket **ValheimPlusPlus** ([[gc.kern.stufe|Stufe]] 3 „Vanilla+“). Alle drei Funktionen sind [[gc.serverrules|Server-Regeln]] und brauchen die Mod auch auf dem Server, in deiner eigenen Welt ist das immer so; hat der Server die Mod, brauchen alle Spieler sie.",
+    "see": ["gc.kisten.mainchest", "gc.kisten.inputchests", "gc.kisten.stationchests_table"]
+  },
+  "gc.kisten.linked": {
+    "title": "Verbundene Kisten",
+    "short": "Alt+K verbindet Kisten mit einer Hauptkiste; öffnest du eine davon, siehst du den Inhalt aller.",
+    "body": "Schau auf eine Kiste und drücke Alt+K (einstellbar): Sie wird zur [[gc.kisten.mainchest|Hauptkiste]]. Danach drückst du dieselbe Taste auf jeder Kiste, die dazugehören soll; ein weiterer Druck auf einer verbundenen Kiste löst sie wieder. Öffnest du eine Kiste der Gruppe, zeigt das Fenster die Plätze aller Kisten untereinander, und du kannst überall entnehmen, ablegen, sortieren und [[gc.schloesser.itemlock|fixieren]].\n\nJede Kiste behält ihre eigenen Items, auch wenn die Mod einmal fehlt; eine Kiste, die gerade jemand anderes offen hat, fehlt in der Ansicht. Verbundene Kisten sind eine [[gc.serverrules|Server-Regel]].",
+    "aliases": ["Verbundene Kisten", "verbundene Kiste", "Kisten verbinden"]
+  },
+  "gc.kisten.mainchest": {
+    "title": "Hauptkiste",
+    "short": "Die Kiste, an die andere Kisten angehängt werden; ihre Plätze stehen in der gemeinsamen Ansicht zuerst.",
+    "body": "Jede Gruppe [[gc.kisten.linked|verbundener Kisten]] hat genau eine Hauptkiste, und eine Hauptkiste lässt sich nicht selbst an eine andere hängen. Verbinden lassen sich nur gebaute Kisten mit gleicher Privatsphäre (öffentlich oder privat), auf die du Zugriff hast, in denselben Wards und höchstens {gc_kisten_linked_distance} von der Hauptkiste entfernt.\n\nHältst du Alt und schaust auf eine Kiste, leuchtet ihre Gruppe: die Hauptkiste orange, die übrigen grün. Der Hover-Text nennt die Zahl der verbundenen Kisten.",
+    "aliases": ["Hauptkiste"]
+  },
+  "gc.kisten.stationmenu": {
+    "title": "Gebäude-Menü",
+    "short": "Umschalt+E an Schmelze und Co.: Inhalt sehen, Erz und Brennstoff zurücknehmen, alles einfüllen.",
+    "body": "Benutze ein Produktionsgebäude wie Schmelze, Hochofen, Köhlerei, Windmühle, Spinnrad oder Eitr-Raffinerie mit Umschalt+E: Das Menü zeigt Warteschlange und Brennstoff, du nimmst Rohstoffe, Brennstoff oder bereitliegende Produkte heraus und füllst mit „Alles einfüllen“ aus dem Inventar nach. An Bienenstock, Vogelnest und Saftzapfer zeigt es den Füllstand und erntet; E allein wirkt überall wie gewohnt.\n\nMit ValheimPlus wählst du hier auch die [[gc.kisten.stationchests|Ein- und Ausgangskisten]], am EpicLoot-Verzaubertisch die Kisten für sein [[gc.kisten.table|Material]]. Das Menü ist eine [[gc.serverrules|Server-Regel]].",
+    "aliases": ["Gebäude-Menü", "Inhalt und Kisten"]
+  },
+  "gc.kisten.stationchests": {
+    "title": "Ein- und Ausgangskisten",
+    "short": "Je Gebäude eigene Kisten für die Automatik von ValheimPlus: woraus es befüllt wird und wohin der Ertrag geht.",
+    "body": "Im [[gc.kisten.stationmenu|Gebäude-Menü]] wählst du für Schmelze und Co. je Rohstoff und für den Brennstoff [[gc.kisten.inputchests|Eingangskisten]], dazu Ausgangskisten für die Produkte; Bienenstock, Vogelnest und Saftzapfer haben nur Ausgangskisten. Ohne Zuweisung nutzt ValheimPlus wie bisher alle Kisten in Reichweite.\n\nZugewiesene Kisten leuchten auf Wunsch, solange das Menü offen ist: Eingang grün, Ausgang rot, beides blau. Die Funktion braucht ValheimPlus und ist eine [[gc.serverrules|Server-Regel]]; mit ihr kann auch der EpicLoot-[[gc.kisten.table|Verzaubertisch aus Kisten]] bezahlen."
+  },
+  "gc.kisten.inputchests": {
+    "title": "Eingangskisten",
+    "short": "Kisten, aus denen ein Gebäude oder der Verzaubertisch sein Material holt, statt aus allen Kisten ringsum.",
+    "body": "Hat ein Rohstoff oder der Brennstoff eines Gebäudes Eingangskisten, holt die Automatik von ValheimPlus ihn nur noch aus diesen; was keine Zuweisung hat, kommt weiter aus allen Kisten in Reichweite. Am EpicLoot-Verzaubertisch gibt es einen Satz Eingangskisten für alles [[gc.kisten.table|Material]].\n\nKlicke im [[gc.kisten.stationmenu|Gebäude-Menü]] auf „Wählen“ und dann auf die Kiste, ein Rechtsklick bricht ab. Die Kiste muss öffentlich sein, in denselben Wards liegen wie das Gebäude und höchstens {gc_kisten_stationchests_distance} entfernt stehen; eine [[gc.kisten.linked|verbundene Kiste]] bringt ihre ganze Gruppe mit. Mit Alt+L [[gc.schloesser.chestlock|gesperrte Kisten]] zählen nie.",
+    "aliases": ["Eingangskisten", "Eingangskiste"]
+  },
+  "gc.kisten.table": {
+    "title": "Verzaubertisch aus Kisten",
+    "short": "Der EpicLoot-Verzaubertisch bezahlt Kosten erst aus dem Inventar, dann aus Kisten.",
+    "body": "Reicht dein Inventar am EpicLoot-Verzaubertisch nicht für Material, Münzen oder Runen, bezahlt der Tisch den Rest aus Kisten. Ohne Zuweisung nimmt er wie ValheimPlus beim Craften (Craft from Chest) alle Kisten in dessen Reichweite und nach dessen Einstellungen; ist Craft from Chest aus, bleibt es beim Inventar. Wählst du mit Umschalt+E am Tisch [[gc.kisten.inputchests|Eingangskisten]], zahlt er nur aus diesen, auch wenn Craft from Chest aus ist.\n\nMit Alt+L [[gc.schloesser.chestlock|gesperrte Kisten]] und [[gc.schloesser.red|rot fixierte]] Items bezahlen nie. Items aus Kisten erscheinen nicht in den Listen zum Opfern oder Verzaubern, sie tragen nur Kosten.",
+    "aliases": ["Material für den Verzaubertisch"]
+  },
+  "gc.kisten.stationchests_table": {
+    "title": "EpicLoot-Verzaubertisch aus Kisten",
+    "short": "Server-Regel: Der EpicLoot-Verzaubertisch darf Kosten auch aus Kisten bezahlen.",
+    "body": "Zurzeit {gc_kisten_stationchests_table}. Wie das abläuft, steht unter [[gc.kisten.table]]. Es braucht EpicLoot und ValheimPlus, die eingeschalteten [[gc.kisten.stationchests|Ein- und Ausgangskisten]] und die Mod auch auf dem Server; die Einstellung ist eine [[gc.serverrules|Server-Regel]]."
+  }
+}

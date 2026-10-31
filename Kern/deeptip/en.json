@@ -1,0 +1,65 @@
+{
+  "$locale": "en",
+  "gc.about": {
+    "title": "GC mods",
+    "short": "The mods of the Gorduan Community: three packages, every feature its own mod, all set in the GC Option menu.",
+    "body": "The GC mods are the Valheim mods of the Gorduan Community. They come in three packages: **GC Server**, **GC Client** and **ValheimPlusPlus**. Every feature in them is a small mod of its own with a [[gc.kern.stufe|level]] from Very vanilla to GC; each one can be [[gc.modswitch|switched off]] on its own, and all of them need the [[gc.kern]].\n\nEverything is set in the [[gc.option]] menu. The mods are free and MIT licensed: anyone may use, change and re-upload them.",
+    "aliases": ["GC mods", "GC mod", "Gorduan Community"],
+    "see": ["gc.option", "gc.kern"]
+  },
+  "gc.option": {
+    "title": "GC Option",
+    "short": "The shared settings menu of all GC mods, with a button in the pause menu and in the main menu.",
+    "body": "You find the “GC Option” button in the pause menu and in the main menu right below “Settings”; if you like, a [[gc.kern.menukey|key of your own]] opens the menu too. The **Settings** tab lists the GC mods ordered by [[gc.kern.stufe|level]], followed by the settings of all other mods, and the search field filters by name, description and mod. In the **Mods** and **Profiles** tabs you [[gc.modswitch|switch mods off]].\n\nWithout the tick at “Show server rules” you only see your own settings; with it you also see the [[gc.serverrules|server rules]]. Changes apply at once, some mods only pick them up after a restart; all values are also in `BepInEx/config`.",
+    "aliases": ["GC Option"],
+    "see": ["gc.serverrules", "gc.modswitch"]
+  },
+  "gc.serverrules": {
+    "title": "Server rules",
+    "short": "Settings the server sets for everyone: its value always applies, and only admins may change them.",
+    "body": "A server rule is the same for every player. The server sends its value to everyone who connects, and while you play there it replaces the value from your own config. In the [[gc.option]] menu server rules only appear with the tick at “Show server rules”; in a world only an admin of the server may change them, and only if the server has the mod.\n\nIn a world you host yourself, you may change them. In the main menu you edit your own config, which applies as soon as you host a world yourself.",
+    "aliases": ["server rules", "server rule"],
+    "see": ["gc.option"]
+  },
+  "gc.modswitch": {
+    "title": "Switching mods off",
+    "short": "Every mod can be switched off on its own: in the “Mods” tab of GC Option, on a server via the file aus.txt.",
+    "body": "In the **Mods** tab of the [[gc.option]] menu every installed mod has a tick; untick it, and it no longer loads after the next restart from r2modman. Mods that need a switched-off mod go off with it, and whatever the menu itself needs, such as the [[gc.kern]], always stays on.\n\nThe list is kept in `BepInEx/config/GC_Kern/aus.txt`, one GUID per line; on a server you enter the mods there by hand. Switching needs the preloader GC_ModSchalter in `BepInEx/patchers`; without it the ticks are locked. Under **Profiles** you remember which mods are off and load such sets again later.",
+    "aliases": ["mod profile", "mod profiles"],
+    "see": ["gc.option"]
+  },
+  "gc.kern": {
+    "title": "GC core",
+    "short": "The common base of all GC mods: the GC Option menu, texts, the server's level and the mod check.",
+    "body": "The GC core (GC_Kern) comes with every package, and every [[gc.about|GC mod]] needs it; it needs Jötunn and [[deeptip.about|DeepTip]] itself. It provides the [[gc.option]] menu, the texts of all GC mods in German and English and [[gc.modswitch|switching single mods off]], and it registers every mod's explanations with DeepTip.\n\nIts own settings are the [[gc.kern.stufe|level for player mods]], [[gc.kern.bossscale|boss progression]], the [[gc.kern.modcheck|mod check]] and the [[gc.kern.menukey|key for GC Option]]. You find them in the “GC core” section below the levels.",
+    "aliases": ["GC core", "GC_Kern"],
+    "see": ["gc.about"]
+  },
+  "gc.kern.stufe": {
+    "title": "Level",
+    "short": "Every GC mod has a level from 1 Very vanilla to 5 GC; the server decides up to which level player mods work.",
+    "body": "The levels are 1 **Very vanilla**, 2 **Vanilla**, 3 **Vanilla+**, 4 **GC light** and 5 **GC**; they say how far a mod departs from the normal game and order the [[gc.option]] menu.\n\nGC mods that run on the player switch off on a server when their level is above its limit; their row then says “Off on this server”. The limit “Level for player mods” is a [[gc.serverrules|server rule]], currently set to {gc_kern_stufe}; 0 means automatic, that is the highest level of the GC mods on the server. Level 1 always works, and so does every mod with a server part that the server itself has; a server without the [[gc.kern|GC core]] sets no limit. The row in the menu shows which level applies right now.",
+    "aliases": ["Level for player mods", "Very vanilla", "GC light"],
+    "see": ["gc.serverrules"]
+  },
+  "gc.kern.bossscale": {
+    "title": "Boss progression",
+    "short": "Enemies grow stronger with every main boss defeated; how much depends on the running mods or on a fixed value.",
+    "body": "For each of the eight main bosses from Eikthyr to Kall Fimbulbringer that you have defeated, enemies and bosses get stronger by a percentage, added up: they hit you and your tamed animals harder and take less damage, as if they had more health. Your own progress counts, with World Advancement Progression or Guilds_Progress their state, otherwise the world's; this applies in your own world and on servers with the [[gc.kern|GC core]].\n\nAutomatic mode is {gc_kern_bossscale}: it takes the highest compensation of the running GC mods, at least 10 % with EpicLoot, 0 % like Valheim without easing mods. When it is off, a fixed value applies, currently {gc_kern_bossscale_percent} per boss; while it is on, that value stays locked. Both are a [[gc.serverrules|server rule]], and the row in the menu shows what applies right now.",
+    "aliases": ["Boss progression"],
+    "see": ["gc.serverrules"]
+  },
+  "gc.kern.modcheck": {
+    "title": "Mod check",
+    "short": "Compares your mods with the server's when you connect and shows what you are missing or what differs.",
+    "body": "A server with the [[gc.kern|GC core]] sends its mod list when you connect. If the connection fails, the main menu shows a window with the mods you are missing, those with a different version and those that only run on your side (usually harmless); a button copies the list, for Discord for example. If you lack some of the server's mods after joining, the window appears once per session, and in game the console command `modcheck` opens it.\n\nBoth displays can be switched off separately; the check applies only to you and is currently {gc_kern_modcheck}. If the server has switched it off, there is no window.",
+    "aliases": ["Mod check", "Mod comparison"],
+    "see": ["gc.modswitch"]
+  },
+  "gc.kern.menukey": {
+    "title": "Key for GC Option",
+    "short": "A key of your own opens and closes the GC Option menu; without one, only the button does.",
+    "body": "To set it, click the value in the [[gc.option]] menu and press the key you want, also together with Shift, Ctrl or Alt, or one of the mouse buttons 3 to 7; right-click clears the binding, Esc cancels. The key works in the main menu and in game, but not in chat, the console or other text fields. In single player the game pauses while the menu is open. The binding applies only to you.",
+    "aliases": ["Key for GC Option"]
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "$locale": "de",
+  "gc.schloesser": {
+    "title": "Schlösser",
+    "short": "Weißes und rotes Schloss für Items und eine Sperre für Kisten gegen die Automatik von ValheimPlus.",
+    "body": "Die Mod bringt zwei Funktionen: [[gc.schloesser.itemlock]] mit dem [[gc.schloesser.white|weißen]] und dem [[gc.schloesser.red|roten Schloss]] sowie [[gc.schloesser.chestlock]]. Mit EpicLoot schützen die Schlösser auch am [[gc.schloesser.epicloot|Verzaubertisch]].\n\nSie gehört zum Paket **ValheimPlusPlus** ([[gc.kern.stufe|Stufe]] 2 „Vanilla“). Die Item-Schlösser wirken mit der Mod bei dir allein, die Kistensperre braucht sie auch auf dem Server; hat der Server die Mod, brauchen alle Spieler sie. Einstellen im [[gc.option|Menü GC Option]].",
+    "see": ["gc.schloesser.itemlock_grave"]
+  },
+  "gc.schloesser.itemlock": {
+    "title": "Items fixieren",
+    "short": "Alt+Linksklick setzt ein weißes, Alt+Rechtsklick ein rotes Schloss auf ein Item.",
+    "body": "Halte die Schloss-Taste (zurzeit {gc_schloesser_itemlock_key}) und klicke ein Item an: Linksklick setzt oder löst das [[gc.schloesser.white|weiße Schloss]], Rechtsklick das [[gc.schloesser.red|rote]]. Das geht im eigenen Inventar und in offenen Kisten, Karren und Schiffen; ein Schloss-Symbol in der Ecke des Platzes und eine Zeile im Tooltip zeigen es an.\n\nFixierte Items bleiben auf ihrem Platz: Stapeln und „Alles nehmen“ lassen sie liegen, und nach dem Tod kehren sie [[gc.schloesser.itemlock_grave|auf ihren Platz]] zurück. Das Schloss bleibt beim Speichern, Ablegen, Aufheben und Verbessern erhalten. Mit EpicLoot schützt es auch am [[gc.schloesser.epicloot|Verzaubertisch]]."
+  },
+  "gc.schloesser.white": {
+    "title": "Weißes Schloss",
+    "short": "Das Item bleibt auf seinem Platz: wird nicht eingelagert oder sortiert und kehrt nach dem Tod zurück.",
+    "body": "Ein weiß fixiertes Item wandert beim Stapeln nicht in Kisten (Stapel ablegen, E halten, Auto-Stack von ValheimPlus) und bleibt bei „Alles nehmen“ in Kisten und Fahrzeugen liegen. Sortieren und Vernichten lassen es in Ruhe, und beim Leeren deines Grabsteins kommt es [[gc.schloesser.itemlock_grave|auf seinen alten Platz]].\n\nCraften und Bauen dürfen es verbrauchen; soll das nie geschehen, nimm das [[gc.schloesser.red|rote Schloss]]. Neue Items gleicher Art landen standardmäßig im weißen Stapel. Am EpicLoot-Verzaubertisch ist es [[gc.schloesser.epicloot|geschützt]], darf dort aber Kosten bezahlen.",
+    "aliases": ["Weißes Schloss"]
+  },
+  "gc.schloesser.red": {
+    "title": "Rotes Schloss",
+    "short": "Wie das weiße Schloss, dazu verbrauchen Craften, Verbessern und Bauen das Item nie, auch nicht aus Kisten.",
+    "body": "Ein rot fixiertes Item zählt beim Craften, Verbessern und Bauen nicht mit, auch nicht über „Craft from Chest“ von ValheimPlus, und die Mengenanzeige lässt es aus. Maschinen von ValheimPlus wie Schmelze, Ofen oder Feuer holen es nicht aus Kisten. Sonst gilt alles vom [[gc.schloesser.white|weißen Schloss]].\n\nNeue Items gleicher Art bekommen standardmäßig einen eigenen Stapel; landen sie doch im roten Stapel, sind sie ebenfalls gesperrt. Am EpicLoot-Verzaubertisch bezahlen rote Items [[gc.schloesser.epicloot|nie]].",
+    "aliases": ["Rotes Schloss"]
+  },
+  "gc.schloesser.epicloot": {
+    "title": "Schlösser am Verzaubertisch",
+    "short": "Mit EpicLoot erscheinen Items mit Schloss nicht zum Opfern, Entzaubern, Identifizieren oder als Runenquelle.",
+    "body": "Jedes Fenster des EpicLoot-Verzaubertischs, das ein Item verbraucht oder ihm etwas nimmt, bietet Items mit [[gc.schloesser.white|weißem]] oder [[gc.schloesser.red|rotem Schloss]] nicht an: Opfern, Entzaubern, Identifizieren, Rune herauslösen sowie Runen und Set-Runen als Quelle. Verzaubern und Verbessern eines fixierten Items bleiben erlaubt, denn es wird verändert, nicht verbraucht.\n\nBeim Bezahlen gilt dasselbe wie beim Craften: Weiß fixierte Items dürfen Kosten tragen, rot fixierte nie. Ohne EpicLoot ändert sich nichts."
+  },
+  "gc.schloesser.itemlock_grave": {
+    "title": "Nach dem Tod auf den alten Platz",
+    "short": "Beim Leeren des eigenen Grabsteins kehren fixierte Items auf ihren Platz zurück.",
+    "body": "Liegt auf dem Platz eines fixierten Items schon etwas anderes, rückt es auf einen freien Platz; ist keiner frei, tauschen beide, und das verdrängte Item bleibt im Grabstein. Angelegte Items und Quest-Items wandern dabei nie in den Grabstein. Eine Meldung nennt, wie viele Items zurückkamen und wie viele umgeräumt wurden; was nicht mehr ins Inventar passt, bleibt wie in Vanilla im Grabstein."
+  },
+  "gc.schloesser.chestlock": {
+    "title": "Kisten für Automatik sperren",
+    "short": "Alt+L sperrt eine Kiste für ValheimPlus-Maschinen, Craften aus Kisten und Auto-Stack.",
+    "body": "Schau auf eine gebaute Kiste und drücke Alt+L (einstellbar): Sie ist für Automatik gesperrt, ein zweiter Druck gibt sie wieder frei. ValheimPlus holt dann weder Brennstoff noch Erz aus ihr, legt keine Produkte hinein und nutzt sie nicht für Craft from Chest und Auto-Stack; auch die GC-Mods lassen sie in Ruhe. Der Hover-Text der Kiste zeigt „Für Automatik gesperrt“.\n\nDie Sperre ist eine [[gc.serverrules|Server-Regel]] und braucht die Mod auch auf dem Server; im Menü steht sie nur mit ValheimPlus.",
+    "aliases": ["Automatik-Sperre", "Für Automatik gesperrt"]
+  }
+}

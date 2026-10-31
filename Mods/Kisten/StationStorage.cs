@@ -40,6 +40,8 @@ internal static class Plugin
 	internal const string RpcTakeOutput = "GC_SS_TakeOutput";
 	internal const string RpcGive = "GC_SS_Give";
 	internal const string RpcAssign = "GC_SS_Assign";
+	internal const string RpcAddOre = "GC_SS_AddOre";
+	internal const string RpcAddFuel = "GC_SS_AddFuel";
 	internal const string KeyPrefix = "gc_ss_";
 	internal const string OutputKey = "out";
 	internal const string FuelKey = "fuel";
@@ -52,6 +54,7 @@ internal static class Plugin
 	internal static bool ChestsOn => ChestsEnabled.Value && !Blocked && VppPlugin.Allowed && VppPlugin.OnServer;
 	internal static ConfigEntry<float> MaxChestDistance = null!;
 	internal static ConfigEntry<bool> HighlightWhileOpen = null!;
+	internal static ConfigEntry<bool> TableChests = null!;
 
 	internal static void Init(ConfigFile Config, Harmony harmony)
 	{
@@ -60,6 +63,7 @@ internal static class Plugin
 		ChestsEnabled = Gc.BindSynced(Config, "4 - Station Storage", "ChestsEnabled", true, "Ein- und Ausgangskisten pro Gebäude für die ValheimPlus-Automatik, auch für Bienenstock, Vogelnest und Saftzapfer (wird vom Server vorgegeben).");
 		MaxChestDistance = Gc.BindSynced(Config, "4 - Station Storage", "MaxChestDistance", 30f, "Größte Entfernung zwischen Gebäude und zugewiesener Kiste in Metern.", new AcceptableValueRange<float>(2f, 100f));
 		HighlightWhileOpen = Gc.Bind(Config, "4 - Station Storage - Interface", "HighlightWhileOpen", true, "Zugewiesene Kisten leuchten, solange das Menü offen ist.");
+		TableChests = Gc.BindSynced(Config, "4 - Station Storage", "EpicLootTableChests", true, "EpicLoot-Verzaubertisch bezahlt auch aus Kisten: ohne Zuweisung wie ValheimPlus beim Craften (Craft from Chest), mit Eingangskisten (Umschalt+E am Tisch) nur aus diesen (wird vom Server vorgegeben).");
 		VPlusBridge.Apply(harmony);
 	}
 
@@ -138,7 +142,7 @@ internal static class Plugin
 		HashSet<Container> seen = new();
 		foreach (string id in ids)
 		{
-			Container? chosen = GcIds.Find(id);
+			Container? chosen = LinkedChests.Links.Find(id); // auch IDs, die ein anderer Spieler nach dem Laden vergeben hat
 			if (chosen == null)
 			{
 				continue;
@@ -164,10 +168,15 @@ internal static class Plugin
 		return result;
 	}
 
-	/// <summary>Alle Eingangsschlüssel des Gebäudes: Brennstoff und jede Rohstoffart (Prefab-Name). Erzeuger haben keine.</summary>
+	/// <summary>Alle Eingangsschlüssel des Gebäudes: Brennstoff und jede Rohstoffart (Prefab-Name), am EpicLoot-Verzaubertisch einer für alles Material. Erzeuger haben keine.</summary>
 	internal static List<string> InputKeys(Station station)
 	{
 		List<string> keys = new();
+		if (station.IsTable)
+		{
+			keys.Add(EnchantingChests.TableKey);
+			return keys;
+		}
 		Smelter? smelter = station.Smelter;
 		if (smelter == null)
 		{
@@ -257,6 +266,10 @@ internal sealed class Station
 		{
 			return new Station(sap, sap.m_nview);
 		}
+		if (EnchantingChests.TableType != null && component.GetComponentInParent(EnchantingChests.TableType) is MonoBehaviour table && table.GetComponent<ZNetView>() is ZNetView view)
+		{
+			return new Station(table, view); // EpicLoot-Verzaubertisch: nur Eingangskisten für Material
+		}
 		return null;
 	}
 
@@ -264,11 +277,13 @@ internal sealed class Station
 	public Beehive? Hive => Component as Beehive;
 	public SapCollector? Sap => Component as SapCollector;
 	public bool IsProducer => Hive != null || Sap != null;
+	public bool IsTable => EnchantingChests.IsTable(Component);
 	public bool Valid => Component != null && View != null && View.IsValid();
 	public GameObject GameObject => Component.gameObject;
 	public Vector3 Position => Component.transform.position;
 
-	public string Name => Smelter != null ? Smelter.m_name : Hive != null ? Hive.m_name : Sap != null ? Sap.m_name : "";
+	public string Name => Smelter != null ? Smelter.m_name : Hive != null ? Hive.m_name : Sap != null ? Sap.m_name
+		: IsTable ? (Component.GetComponent<Piece>() is Piece piece ? piece.m_name : "$mod_epicloot_assets_enchantingtable") : "";
 
 	/// <summary>Erzeuger: aktueller Füllstand und Höchststand.</summary>
 	public (int Level, int Max) Level => Hive != null ? (Hive.GetHoneyLevel(), Hive.m_maxHoney) : Sap != null ? (Sap.GetLevel(), Sap.m_maxLevel) : (0, 0);
@@ -318,6 +333,8 @@ internal static class SmelterAwakePatch
 		nview.Register(Plugin.RpcTakeOutput, sender => Rpcs.TakeOutput(smelter, sender));
 		nview.Register<string, int>(Plugin.RpcGive, (sender, item, amount) => Rpcs.Give(item, amount));
 		nview.Register<string, string>(Plugin.RpcAssign, (sender, key, value) => Rpcs.Assign(nview, key, value));
+		nview.Register<string, int, bool>(Plugin.RpcAddOre, (sender, item, amount, cheated) => Rpcs.AddOre(smelter, sender, item, amount, cheated));
+		nview.Register<int>(Plugin.RpcAddFuel, (sender, amount) => Rpcs.AddFuel(smelter, sender, amount));
 	}
 }
 
@@ -437,6 +454,7 @@ internal static class Rpcs
 			data.m_dropPrefab = prefab;
 			data.m_stack = chunk;
 			data.m_durability = data.GetMaxDurability();
+			data.m_worldLevel = (byte)Game.m_worldLevel; // wie Vanilla Inventory.AddItem(prefab, amount), Review 27.10.2026: sonst stapelt es nicht und zählt beim Craften nicht
 			int before = inventory.NrOfItemsIncludingStacks();
 			if (inventory.CanAddItem(data, chunk))
 			{
@@ -449,6 +467,7 @@ internal static class Rpcs
 				ItemDrop.ItemData restData = template.m_itemData.Clone();
 				restData.m_dropPrefab = prefab;
 				restData.m_durability = restData.GetMaxDurability();
+				restData.m_worldLevel = (byte)Game.m_worldLevel;
 				Vector3 at = player.transform.position + player.transform.forward * 0.7f + Vector3.up;
 				ItemDrop.DropItem(restData, rest, at, Quaternion.identity);
 				dropped += rest;
@@ -468,6 +487,75 @@ internal static class Rpcs
 		{
 			nview.GetZDO().Set(Plugin.KeyPrefix + key, value);
 		}
+	}
+
+	/// <summary>
+	/// Beim Besitzer: Rohstoffe aus „Alles einfüllen" in die Warteschlange (Review 27.10.2026: ein Sammel-RPC statt eines RPC
+	/// je Item). Was nicht erlaubt ist, nicht mehr passt oder ankommt, nachdem der Besitz gewechselt hat, geht über
+	/// GC_SS_Give an den Spieler zurück; vorher waren solche Items verloren.
+	/// </summary>
+	public static void AddOre(Smelter smelter, long sender, string item, int amount, bool cheated)
+	{
+		ZNetView nview = smelter.m_nview;
+		if (amount <= 0 || string.IsNullOrEmpty(item))
+		{
+			return;
+		}
+		int accepted = 0;
+		if (nview.IsOwner() && smelter.IsItemAllowed(item))
+		{
+			accepted = Mathf.Clamp(smelter.m_maxOre - smelter.GetQueueSize(), 0, amount);
+			for (int i = 0; i < accepted; i++)
+			{
+				smelter.QueueOre(item, cheated);
+			}
+			if (accepted > 0)
+			{
+				smelter.m_oreAddedEffects.Create(smelter.transform.position, smelter.transform.rotation);
+			}
+		}
+		if (amount > accepted)
+		{
+			nview.InvokeRPC(sender, Plugin.RpcGive, item, amount - accepted);
+		}
+	}
+
+	/// <summary>Beim Besitzer: Brennstoff aus „Alles einfüllen" auf einmal, Überschuss zurück an den Spieler (wie <see cref="AddOre"/>).</summary>
+	public static void AddFuel(Smelter smelter, long sender, int amount)
+	{
+		ZNetView nview = smelter.m_nview;
+		if (amount <= 0 || smelter.m_fuelItem == null)
+		{
+			return;
+		}
+		int accepted = 0;
+		if (nview.IsOwner())
+		{
+			float fuel = smelter.GetFuel();
+			accepted = Mathf.Clamp(Mathf.FloorToInt(smelter.m_maxFuel - fuel), 0, amount);
+			if (accepted > 0)
+			{
+				smelter.SetFuel(fuel + accepted);
+				smelter.m_fuelAddedEffects.Create(smelter.transform.position, smelter.transform.rotation, smelter.transform);
+			}
+		}
+		if (amount > accepted)
+		{
+			nview.InvokeRPC(sender, Plugin.RpcGive, smelter.m_fuelItem.gameObject.name, amount - accepted);
+		}
+	}
+
+	/// <summary>
+	/// RPC an den Besitzer eines Gebäudes. Hat es gerade keinen, übernimmt der Spieler es selbst: Ein RPC an „niemand"
+	/// ginge an alle (ZRoutedRpc.Everybody), und beim Einfüllen gäbe dann jeder die Items zurück.
+	/// </summary>
+	public static void ToOwner(ZNetView nview, string method, params object[] args)
+	{
+		if (!nview.GetZDO().HasOwner())
+		{
+			nview.ClaimOwnership();
+		}
+		nview.InvokeRPC(method, args);
 	}
 }
 
@@ -602,6 +690,9 @@ internal static class PlacementBlockPatch
 /// Während Smelter.UpdateSmelter (Einfüllen) bzw. Smelter.Spawn (Ablegen) läuft, ersetzt diese Mod die Liste durch
 /// die zugewiesenen Kisten und filtert pro Rohstoff. Bienenstock, Vogelnest und Saftzapfer fragen nur zum Ablegen:
 /// Dort gelten die Ausgangskisten.
+/// Review 27.10.2026: Jede Einhängung ist einzeln abgesichert (VppPatch, V+-Parameter per Position). Eingang und Ausgang
+/// wirken nur, wenn alle ihre Teile eingehängt sind; sonst bleibt V+ dort unverändert und das Menü zeigt die Zeilen
+/// nicht. Erlaubte Kisten je Schlüssel werden einmal je Durchlauf (Smelter-Tick) berechnet, nicht bei jeder Entnahme.
 /// </summary>
 internal static class VPlusBridge
 {
@@ -612,12 +703,48 @@ internal static class VPlusBridge
 		Output
 	}
 
-	// Stapel, weil Smelter.Spawn innerhalb von Smelter.UpdateSmelter aufgerufen wird
-	private static readonly Stack<(Mode Mode, Smelter Station)> Context = new();
-	private static List<Container> original = new();
+	/// <summary>Ein laufender Durchlauf eines Gebäudes (UpdateSmelter = Eingang, Spawn = Ausgang) mit seinem Zwischenspeicher.</summary>
+	private sealed class Pass
+	{
+		public readonly Mode Mode;
+		public readonly Smelter Smelter;
+		private Station? station;
 
-	private static Mode mode => Context.Count > 0 ? Context.Peek().Mode : Mode.None;
-	private static Smelter? current => Context.Count > 0 ? Context.Peek().Station : null;
+		public Pass(Mode mode, Smelter smelter)
+		{
+			Mode = mode;
+			Smelter = smelter;
+		}
+
+		public Station Station => station ??= Station.Of(Smelter)!;
+
+		/// <summary>V+-Kistenliste vor dem Hinzufügen der zugewiesenen Kisten: gilt für Rohstoffe ohne eigene Zuweisung.</summary>
+		public HashSet<Container> Original = new();
+
+		/// <summary>Zugewiesene Eingangskisten aller Rohstoffe und des Brennstoffs, einmal je Durchlauf.</summary>
+		public List<Container>? Inputs;
+
+		/// <summary>Zugewiesene Ausgangskisten, einmal je Durchlauf.</summary>
+		public List<Container>? Outputs;
+
+		/// <summary>Erlaubte Kisten je Schlüssel, einmal je Durchlauf. null = keine (geladene) Zuweisung, dann gilt <see cref="Original"/>.</summary>
+		public readonly Dictionary<string, HashSet<Container>?> Allowed = new();
+	}
+
+	// Stapel, weil Smelter.Spawn innerhalb von Smelter.UpdateSmelter aufgerufen wird
+	private static readonly Stack<Pass> Context = new();
+
+	/// <summary>Eingangskisten der Schmelzen wirken (alle Einhängungen dafür aktiv).</summary>
+	internal static bool InputReady { get; private set; }
+
+	/// <summary>Ausgangskisten der Schmelzen wirken.</summary>
+	internal static bool OutputReady { get; private set; }
+
+	/// <summary>Ausgangskisten von Bienenstock, Vogelnest und Saftzapfer wirken.</summary>
+	internal static bool ProducerReady { get; private set; }
+
+	/// <summary>Wirken Ausgangskisten für dieses Gebäude?</summary>
+	internal static bool OutputFor(Station station) => station.IsProducer ? ProducerReady : OutputReady;
 
 	internal static void Apply(Harmony harmony)
 	{
@@ -625,47 +752,79 @@ internal static class VPlusBridge
 		{
 			return;
 		}
-		Type? assistant = AccessTools.TypeByName("ValheimPlus.InventoryAssistant");
-		if (assistant == null)
+		int total = 0;
+		int active = 0;
+		bool Hook(MethodBase? method, string what, HarmonyMethod? prefix = null, HarmonyMethod? postfix = null, HarmonyMethod? finalizer = null)
 		{
-			Plugin.Log.LogWarning("ValheimPlus gefunden, aber InventoryAssistant nicht. Kistenzuweisung wirkt nicht.");
-			return;
-		}
-		harmony.Patch(AccessTools.Method(typeof(Smelter), nameof(Smelter.UpdateSmelter)),
-			prefix: new HarmonyMethod(typeof(VPlusBridge), nameof(BeginInput)) { priority = Priority.First },
-			finalizer: new HarmonyMethod(typeof(VPlusBridge), nameof(End)));
-		harmony.Patch(AccessTools.Method(typeof(Smelter), nameof(Smelter.Spawn)),
-			prefix: new HarmonyMethod(typeof(VPlusBridge), nameof(BeginOutput)) { priority = Priority.First },
-			finalizer: new HarmonyMethod(typeof(VPlusBridge), nameof(End)));
-
-		MethodInfo? machine = AccessTools.Method(assistant, "GetNearbyChestsForMachine");
-		if (machine != null)
-		{
-			harmony.Patch(machine, postfix: new HarmonyMethod(typeof(VPlusBridge), nameof(MachineChests)) { priority = Priority.Last });
-		}
-		MethodInfo? fromChests = AccessTools.Method(assistant, "RemoveItemInAmountFromChests");
-		if (fromChests != null)
-		{
-			harmony.Patch(fromChests, prefix: new HarmonyMethod(typeof(VPlusBridge), nameof(FilterChestList)));
-		}
-		foreach (MethodInfo method in assistant.GetMethods(BindingFlags.Public | BindingFlags.Static).Where(m => m.Name == "RemoveItemFromChest"))
-		{
-			ParameterInfo[] parameters = method.GetParameters();
-			if (parameters.Length == 3 && parameters[1].ParameterType == typeof(ItemDrop.ItemData))
+			total++;
+			bool ok = VppPatch.Try(harmony, method, what, prefix, postfix, finalizer);
+			if (ok)
 			{
-				harmony.Patch(method, prefix: new HarmonyMethod(typeof(VPlusBridge), nameof(FilterSingleItem)));
+				active++;
 			}
-			else if (parameters.Length == 3 && parameters[1].ParameterType == typeof(string))
-			{
-				harmony.Patch(method, prefix: new HarmonyMethod(typeof(VPlusBridge), nameof(FilterSingleName)));
-			}
+			return ok;
 		}
-		Plugin.Log.LogInfo("ValheimPlus erkannt: Ein- und Ausgangskisten pro Gebäude aktiv (auch Bienenstock, Vogelnest, Saftzapfer).");
+		try
+		{
+			Type? assistant = AccessTools.TypeByName("ValheimPlus.InventoryAssistant");
+			if (assistant == null)
+			{
+				Plugin.Log.LogWarning("ValheimPlus: ValheimPlus.InventoryAssistant nicht gefunden. Kistenzuweisung wirkt nicht.");
+				return;
+			}
+			bool input = Hook(AccessTools.Method(typeof(Smelter), nameof(Smelter.UpdateSmelter)), "Smelter.UpdateSmelter",
+				prefix: new HarmonyMethod(typeof(VPlusBridge), nameof(BeginInput)) { priority = Priority.First },
+				finalizer: new HarmonyMethod(typeof(VPlusBridge), nameof(End)));
+			bool output = Hook(AccessTools.Method(typeof(Smelter), nameof(Smelter.Spawn)), "Smelter.Spawn",
+				prefix: new HarmonyMethod(typeof(VPlusBridge), nameof(BeginOutput)) { priority = Priority.First },
+				finalizer: new HarmonyMethod(typeof(VPlusBridge), nameof(End)));
+			bool machine = Hook(VppPatch.Find(assistant, "GetNearbyChestsForMachine"), "InventoryAssistant.GetNearbyChestsForMachine",
+				postfix: new HarmonyMethod(typeof(VPlusBridge), nameof(MachineChests)) { priority = Priority.Last });
+			bool list = Hook(VppPatch.Find(assistant, "RemoveItemInAmountFromChests"), "InventoryAssistant.RemoveItemInAmountFromChests",
+				prefix: new HarmonyMethod(typeof(VPlusBridge), nameof(FilterChestList)));
+			MethodInfo? byItem = null;
+			MethodInfo? byName = null;
+			foreach (MethodInfo method in assistant.GetMethods(BindingFlags.Public | BindingFlags.Static).Where(m => m.Name == "RemoveItemFromChest"))
+			{
+				ParameterInfo[] parameters = method.GetParameters();
+				if (parameters.Length == 3 && parameters[1].ParameterType == typeof(ItemDrop.ItemData))
+				{
+					byItem = method;
+				}
+				else if (parameters.Length == 3 && parameters[1].ParameterType == typeof(string))
+				{
+					byName = method;
+				}
+			}
+			bool singleItem = Hook(byItem, "InventoryAssistant.RemoveItemFromChest(ItemData)", prefix: new HarmonyMethod(typeof(VPlusBridge), nameof(FilterSingleItem)));
+			bool singleName = Hook(byName, "InventoryAssistant.RemoveItemFromChest(string)", prefix: new HarmonyMethod(typeof(VPlusBridge), nameof(FilterSingleName)));
+			// Ohne die Abfrage der Maschinen-Kisten wirkt nichts; ohne alle Filter würden zugewiesene Kisten jeden Rohstoff liefern
+			// bzw. ohne die Liste (Original) jede Entnahme blockieren: dann den Eingang ganz abschalten.
+			ProducerReady = machine;
+			OutputReady = machine && output;
+			InputReady = machine && input && list && singleItem && singleName;
+		}
+		catch (Exception e)
+		{
+			Plugin.Log.LogWarning($"ValheimPlus: Einhängen abgebrochen: {e.Message}");
+			InputReady = false;
+			OutputReady = false;
+			ProducerReady = false;
+		}
+		string text = $"ValheimPlus erkannt: Ein- und Ausgangskisten, {active} von {total} V+-Einhängungen aktiv (Eingang {(InputReady ? "an" : "aus")}, Ausgang {(OutputReady ? "an" : "aus")}, Bienenstock/Vogelnest/Saftzapfer {(ProducerReady ? "an" : "aus")}).";
+		if (active == total)
+		{
+			Plugin.Log.LogInfo(text);
+		}
+		else
+		{
+			Plugin.Log.LogWarning(text);
+		}
 	}
 
-	private static void BeginInput(Smelter __instance) => Context.Push((Mode.Input, __instance));
+	private static void BeginInput(Smelter __instance) => Context.Push(new Pass(Mode.Input, __instance));
 
-	private static void BeginOutput(Smelter __instance) => Context.Push((Mode.Output, __instance));
+	private static void BeginOutput(Smelter __instance) => Context.Push(new Pass(Mode.Output, __instance));
 
 	private static void End()
 	{
@@ -673,19 +832,28 @@ internal static class VPlusBridge
 		{
 			Context.Pop();
 		}
-		if (Context.Count == 0)
-		{
-			original = new List<Container>();
-		}
 	}
 
-	private static void MachineChests(GameObject machine, ref List<Container> __result)
+	/// <summary>Der laufende Eingangs-Durchlauf, wenn die Kistenzuweisung dort wirkt, sonst null (schnell für alle anderen V+-Aufrufe).</summary>
+	private static Pass? InputPass()
 	{
-		if (!Plugin.ChestsOn || machine == null)
+		if (Context.Count == 0 || !InputReady)
+		{
+			return null;
+		}
+		Pass pass = Context.Peek();
+		return pass.Mode == Mode.Input && Plugin.ChestsOn ? pass : null;
+	}
+
+	/// <summary>V+ GetNearbyChestsForMachine(GameObject machine, float range, bool checkWard): Parameter per Position.</summary>
+	private static void MachineChests(GameObject __0, ref List<Container> __result)
+	{
+		GameObject machine = __0;
+		if (machine == null || __result == null || !Plugin.ChestsOn)
 		{
 			return;
 		}
-		if (mode == Mode.None)
+		if (Context.Count == 0)
 		{
 			// Bienenstock, Vogelnest, Saftzapfer: V+ fragt nur zum Ablegen des Ertrags
 			Station? producer = Station.Of(machine.transform);
@@ -699,29 +867,37 @@ internal static class VPlusBridge
 			}
 			return;
 		}
-		if (current == null || machine != current.gameObject)
+		Pass pass = Context.Peek();
+		if (machine != pass.Smelter.gameObject)
 		{
 			return;
 		}
-		Station station = Station.Of(current)!;
-		if (mode == Mode.Output)
+		if (pass.Mode == Mode.Output)
 		{
-			List<Container> outputs = Plugin.Resolve(station, Plugin.Assigned(station, Plugin.OutputKey));
-			if (outputs.Count > 0)
+			if (!OutputReady)
 			{
-				__result = outputs;
+				return;
+			}
+			pass.Outputs ??= Plugin.Resolve(pass.Station, Plugin.Assigned(pass.Station, Plugin.OutputKey));
+			if (pass.Outputs.Count > 0)
+			{
+				__result = new List<Container>(pass.Outputs);
 			}
 			return;
 		}
-		original = new List<Container>(__result);
-		List<Container> assigned = Plugin.Resolve(station, Plugin.InputKeys(station).SelectMany(key => Plugin.Assigned(station, key)).Distinct());
-		if (assigned.Count == 0)
+		if (!InputReady)
+		{
+			return;
+		}
+		pass.Original = new HashSet<Container>(__result.Where(c => c != null));
+		pass.Inputs ??= Plugin.Resolve(pass.Station, Plugin.InputKeys(pass.Station).SelectMany(key => Plugin.Assigned(pass.Station, key)).Distinct());
+		if (pass.Inputs.Count == 0)
 		{
 			return;
 		}
 		List<Container> combined = new(__result);
-		HashSet<Container> seen = new(combined.Where(c => c != null));
-		foreach (Container chest in assigned)
+		HashSet<Container> seen = new(pass.Original);
+		foreach (Container chest in pass.Inputs)
 		{
 			if (seen.Add(chest))
 			{
@@ -731,44 +907,40 @@ internal static class VPlusBridge
 		__result = combined;
 	}
 
-	private static List<Container>? AllowedFor(string key)
+	/// <summary>Erlaubte Kisten für einen Schlüssel, einmal je Durchlauf berechnet (Review 27.10.2026: vorher bei jeder Entnahme neu).</summary>
+	private static HashSet<Container> AllowedFor(Pass pass, string key)
 	{
-		if (mode != Mode.Input || current == null)
+		if (!pass.Allowed.TryGetValue(key, out HashSet<Container>? allowed))
 		{
-			return null;
+			List<string> ids = Plugin.Assigned(pass.Station, key);
+			List<Container> resolved = ids.Count > 0 ? Plugin.Resolve(pass.Station, ids) : new List<Container>();
+			allowed = resolved.Count > 0 ? new HashSet<Container>(resolved) : null; // zugewiesene Kisten weg oder nicht geladen: wie ohne Zuweisung
+			pass.Allowed[key] = allowed;
 		}
-		Station station = Station.Of(current)!;
-		List<string> ids = Plugin.Assigned(station, key);
-		if (ids.Count == 0)
-		{
-			return original;
-		}
-		List<Container> resolved = Plugin.Resolve(station, ids);
-		return resolved.Count > 0 ? resolved : original; // zugewiesene Kisten weg oder nicht geladen: wie ohne Zuweisung
+		return allowed ?? pass.Original;
 	}
 
-	private static void FilterChestList(ref List<Container> chests, ItemDrop.ItemData needle)
+	/// <summary>V+ RemoveItemInAmountFromChests(List&lt;Container&gt; chests, ItemData needle, int amount): Parameter per Position.</summary>
+	private static void FilterChestList(ref List<Container> __0, ItemDrop.ItemData __1)
 	{
-		if (!Plugin.ChestsOn || current == null || mode != Mode.Input || needle == null)
+		Pass? pass = InputPass();
+		if (pass == null || __0 == null || __1 == null)
 		{
 			return;
 		}
-		List<Container>? allowed = AllowedFor(Plugin.KeyForItem(current, needle));
-		if (allowed != null)
-		{
-			HashSet<Container> set = new(allowed);
-			chests = chests.Where(c => c != null && set.Contains(c)).ToList();
-		}
+		HashSet<Container> allowed = AllowedFor(pass, Plugin.KeyForItem(pass.Smelter, __1));
+		__0 = __0.Where(c => c != null && allowed.Contains(c)).ToList();
 	}
 
-	private static bool FilterSingleItem(Container chest, ItemDrop.ItemData needle, ref int __result)
+	/// <summary>V+ RemoveItemFromChest(Container chest, ItemData needle, int amount): Parameter per Position.</summary>
+	private static bool FilterSingleItem(Container __0, ItemDrop.ItemData __1, ref int __result)
 	{
-		if (!Plugin.ChestsOn || current == null || mode != Mode.Input || needle == null)
+		Pass? pass = InputPass();
+		if (pass == null || __0 == null || __1 == null)
 		{
 			return true;
 		}
-		List<Container>? allowed = AllowedFor(Plugin.KeyForItem(current, needle));
-		if (allowed != null && chest != null && !allowed.Contains(chest))
+		if (!AllowedFor(pass, Plugin.KeyForItem(pass.Smelter, __1)).Contains(__0))
 		{
 			__result = 0;
 			return false;
@@ -776,14 +948,15 @@ internal static class VPlusBridge
 		return true;
 	}
 
-	private static bool FilterSingleName(Container chest, string needle, ref int __result)
+	/// <summary>V+ RemoveItemFromChest(Container chest, string needle, int amount): Parameter per Position.</summary>
+	private static bool FilterSingleName(Container __0, string __1, ref int __result)
 	{
-		if (!Plugin.ChestsOn || current == null || mode != Mode.Input || needle == null)
+		Pass? pass = InputPass();
+		if (pass == null || __0 == null || __1 == null)
 		{
 			return true;
 		}
-		List<Container>? allowed = AllowedFor(Plugin.KeyForSharedName(current, needle));
-		if (allowed != null && chest != null && !allowed.Contains(chest))
+		if (!AllowedFor(pass, Plugin.KeyForSharedName(pass.Smelter, __1)).Contains(__0))
 		{
 			__result = 0;
 			return false;

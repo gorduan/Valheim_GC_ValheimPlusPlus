@@ -231,6 +231,7 @@ public static class GcKern
 		{
 			GcLoc.AddAssembly(plugin.GetType().Assembly, info.Name, log);
 		}
+		GcDeepTip.RegisterMod(plugin.GetType().Assembly, plugin.GetType().Namespace ?? "", info.Name); // DeepTip-Glossar der Mod (seit 1.9.0)
 		log.LogInfo($"{info.Name} {info.Version} angemeldet: Stufe {info.Stufe}, {SeiteText(info.Seite)}.");
 		return module;
 	}
@@ -316,7 +317,9 @@ public static class GcKern
 			string t = GcLoc.Get(titleKey);
 			return t == titleKey ? info.Name : t;
 		};
-		return Section(info.Stufe).Group(titleKey, title, text, info.Guid, () => module.Allowed);
+		GcMenuGroup group = Section(info.Stufe).Group(titleKey, title, text, info.Guid, () => module.Allowed);
+		group.ModId = info.Id; // Live-Werte {gc_<mod>_<schlüssel>} und DeepTip-Fenster der Zeilen
+		return group;
 	}
 }
 

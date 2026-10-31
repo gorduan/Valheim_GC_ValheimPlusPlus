@@ -60,6 +60,27 @@ internal static class Highlighter
 
 	public static void Clear() => Apply(new Dictionary<GameObject, Color>());
 
+	private static Station? cachedFor;
+	private static float cachedUntil;
+	private static Dictionary<GameObject, Color> cached = new();
+
+	/// <summary>
+	/// Wie <see cref="Assigned"/>, aber höchstens zweimal je Sekunde neu berechnet (Review 27.10.2026: Menü und Kistenwahl
+	/// lösten sonst jedes Bild alle Gruppen auf). Das Ergebnis nicht verändern, sondern kopieren.
+	/// </summary>
+	public static Dictionary<GameObject, Color> AssignedCached(Station station)
+	{
+		if (!station.Equals(cachedFor) || Time.unscaledTime >= cachedUntil)
+		{
+			cachedFor = station;
+			cachedUntil = Time.unscaledTime + 0.5f;
+			cached = Assigned(station);
+		}
+		return cached;
+	}
+
+	public static void Invalidate() => cachedUntil = -1f;
+
 	/// <summary>Alle zugewiesenen Kisten eines Gebäudes mit ihrer Farbe (Eingang, Ausgang, beides).</summary>
 	public static Dictionary<GameObject, Color> Assigned(Station station)
 	{
@@ -89,6 +110,16 @@ internal static class ChestPicker
 {
 	private static Station? station;
 	private static string key = "";
+	private static float startedAt;
+
+	/// <summary>
+	/// Review 27.10.2026: Die Kistenwahl blockiert Angriffe (AttackBlockPatch). Sie endet deshalb nach 30 s oder wenn der
+	/// Spieler mehr als 10 m außerhalb der Kistenreichweite (MaxChestDistance um das Gebäude) steht. Gemessen ab dem
+	/// Gebäude plus Reichweite, weil zugewiesene Kisten bis MaxChestDistance entfernt stehen dürfen und man zum Anklicken
+	/// bei der Kiste stehen muss.
+	/// </summary>
+	private const float MaxSeconds = 30f;
+	private const float Leeway = 10f;
 
 	public static bool Active { get; private set; }
 
@@ -97,6 +128,7 @@ internal static class ChestPicker
 		station = target;
 		key = assignKey;
 		Active = true;
+		startedAt = Time.time;
 		Gc.Center(GcLoc.Get("gcss_pick_help"));
 	}
 
@@ -112,13 +144,19 @@ internal static class ChestPicker
 			Cancel(false);
 			return;
 		}
+		if (Time.time - startedAt > MaxSeconds || Vector3.Distance(player.transform.position, station.Position) > Plugin.MaxChestDistance.Value + Leeway)
+		{
+			Cancel(false);
+			Gc.Center(GcLoc.Get("gcss_pick_ended", MaxSeconds.ToString("0")));
+			return;
+		}
 		Container? hovered = Gc.Hovered<Container>();
 		if (hovered != null && !GcWard.IsPlayerChest(hovered))
 		{
 			hovered = null;
 		}
 
-		Dictionary<GameObject, Color> wanted = Highlighter.Assigned(station);
+		Dictionary<GameObject, Color> wanted = new(Highlighter.AssignedCached(station)); // Kopie: unten kommen Gebäude und Hover dazu
 		wanted[station.GameObject] = Highlighter.Station;
 		if (hovered != null)
 		{
@@ -189,6 +227,7 @@ internal static class ChestPicker
 	private static void Save(List<string> selected)
 	{
 		station!.View.InvokeRPC(Plugin.RpcAssign, key, string.Join(";", selected.Distinct()));
+		Highlighter.Invalidate();
 	}
 
 	public static void Cancel(bool backToMenu)
@@ -261,7 +300,7 @@ internal static class StationWindow
 		}
 		if (Plugin.HighlightWhileOpen.Value)
 		{
-			Highlighter.Apply(Highlighter.Assigned(station));
+			Highlighter.Apply(Highlighter.AssignedCached(station)); // höchstens zweimal je Sekunde neu berechnet (Review 27.10.2026)
 		}
 		if (Time.time >= nextCheck)
 		{
@@ -314,6 +353,11 @@ internal static class StationWindow
 		if (smelter != null)
 		{
 			BuildSmelter(smelter, zdo, inventory);
+		}
+		else if (station.IsTable)
+		{
+			Section(GcLoc.Get("gcss_section_table"));
+			Row(EnchantingChests.Describe(station));
 		}
 		else
 		{
@@ -396,25 +440,35 @@ internal static class StationWindow
 
 	private static void BuildChests(Station target)
 	{
-		if (!Gc.VPlusLoaded || !Plugin.ChestsOn)
+		// Review 27.10.2026: nur Zeilen, deren V+-Einhängungen aktiv sind; sonst wirkte eine Zuweisung nicht
+		bool inputs = (VPlusBridge.InputReady && target.Smelter != null) || (target.IsTable && EnchantingChests.Ready && Plugin.TableChests.Value);
+		bool output = !target.IsTable && VPlusBridge.OutputFor(target);
+		if (!Gc.VPlusLoaded || !Plugin.ChestsOn || (!inputs && !output))
 		{
 			return;
 		}
 		Section(GcLoc.Get("gcss_section_chests"));
 		Smelter? smelter = target.Smelter;
-		foreach (string key in Plugin.InputKeys(target))
+		if (inputs)
 		{
-			string label = key == Plugin.FuelKey ? Localization.instance.Localize(smelter!.m_fuelItem.m_itemData.m_shared.m_name) : Plugin.ItemName(key);
-			ChestRow(target, key, GcLoc.Get("gcss_input_chests", label, Plugin.Assigned(target, key).Count));
+			foreach (string key in Plugin.InputKeys(target))
+			{
+				string label = key == EnchantingChests.TableKey ? GcLoc.Get("gcss_table_material")
+					: key == Plugin.FuelKey ? Localization.instance.Localize(smelter!.m_fuelItem.m_itemData.m_shared.m_name) : Plugin.ItemName(key);
+				ChestRow(target, key, GcLoc.Get("gcss_input_chests", label, Plugin.Assigned(target, key).Count));
+			}
 		}
-		ChestRow(target, Plugin.OutputKey, GcLoc.Get("gcss_output_chests", Plugin.Assigned(target, Plugin.OutputKey).Count));
-		Row($"<i>{GcLoc.Get(target.IsProducer ? "gcss_chests_note_producer" : "gcss_chests_note")}</i>");
+		if (output)
+		{
+			ChestRow(target, Plugin.OutputKey, GcLoc.Get("gcss_output_chests", Plugin.Assigned(target, Plugin.OutputKey).Count));
+		}
+		Row($"<i>{GcLoc.Get(target.IsTable ? "gcss_chests_note_table" : target.IsProducer ? "gcss_chests_note_producer" : "gcss_chests_note")}</i>");
 	}
 
 	private static void ChestRow(Station target, string key, string text)
 	{
 		List<string> ids = Plugin.Assigned(target, key);
-		int found = ids.Count(id => GcIds.Find(id) != null);
+		int found = ids.Count(id => LinkedChests.Links.Find(id) != null);
 		Row(text + (found < ids.Count ? " " + GcLoc.Get("gcss_found", found) : ""), GcLoc.Get("gcss_pick"), () => Pick(target, key),
 			ids.Count > 0 ? GcLoc.Get("gcss_clear") : null, () => target.View.InvokeRPC(Plugin.RpcAssign, key, ""));
 	}
@@ -444,24 +498,24 @@ internal static class StationWindow
 		Player player = Player.m_localPlayer;
 		Inventory inventory = player.GetInventory();
 		int space = smelter.m_maxOre - smelter.GetQueueSize();
-		int amount = Mathf.Min(space, inventory.CountItems(sharedName));
+		int have = inventory.CountItems(sharedName);
+		int amount = Mathf.Min(space, have);
 		if (amount <= 0)
 		{
 			Gc.Center("$msg_itsfull");
 			return;
 		}
-		for (int i = 0; i < amount; i++)
+		// Review 27.10.2026: einmal entnehmen und ein Sammel-RPC an den Besitzer, der nicht Angenommenes über GC_SS_Give
+		// zurückgibt. Vorher ging je Item ein RPC_AddOre los; wechselte dazwischen der Besitzer, waren die Items weg.
+		bool cheated = inventory.m_inventory.Exists(i => i.m_shared.m_name == sharedName && i.m_cheated); // wie V+ beim Nachfüllen aus Kisten
+		inventory.RemoveItem(sharedName, amount);
+		int removed = have - inventory.CountItems(sharedName);
+		if (removed <= 0)
 		{
-			ItemDrop.ItemData? item = inventory.GetItem(sharedName);
-			if (item == null)
-			{
-				break;
-			}
-			bool cheated = item.m_cheated;
-			inventory.RemoveItem(item, 1);
-			smelter.m_nview.InvokeRPC("RPC_AddOre", prefab, cheated);
+			return;
 		}
-		Gc.TopLeft(GcLoc.Get("gcss_added", amount, Plugin.ItemName(prefab)));
+		Rpcs.ToOwner(smelter.m_nview, Plugin.RpcAddOre, prefab, removed, cheated);
+		Gc.TopLeft(GcLoc.Get("gcss_added", removed, Plugin.ItemName(prefab)));
 	}
 
 	private static void AddFuel(Smelter smelter, string sharedName)
@@ -481,18 +535,21 @@ internal static class StationWindow
 	{
 		Inventory inventory = Player.m_localPlayer.GetInventory();
 		int space = Mathf.FloorToInt(smelter.m_maxFuel - smelter.GetFuel());
-		int amount = Mathf.Min(space, inventory.CountItems(sharedName));
+		int have = inventory.CountItems(sharedName);
+		int amount = Mathf.Min(space, have);
 		if (amount <= 0)
 		{
 			Gc.Center("$msg_itsfull");
 			return;
 		}
 		inventory.RemoveItem(sharedName, amount);
-		for (int i = 0; i < amount; i++)
+		int removed = have - inventory.CountItems(sharedName);
+		if (removed <= 0)
 		{
-			smelter.m_nview.InvokeRPC("RPC_AddFuel");
+			return;
 		}
-		Gc.TopLeft(GcLoc.Get("gcss_added", amount, Localization.instance.Localize(sharedName)));
+		Rpcs.ToOwner(smelter.m_nview, Plugin.RpcAddFuel, removed); // ein Sammel-RPC, der Besitzer gibt den Überschuss zurück (Review 27.10.2026)
+		Gc.TopLeft(GcLoc.Get("gcss_added", removed, Localization.instance.Localize(sharedName)));
 	}
 
 	private static void Section(string text)

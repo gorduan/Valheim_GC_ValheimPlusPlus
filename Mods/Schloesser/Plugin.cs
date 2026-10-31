@@ -33,6 +33,12 @@ public partial class Plugin : BaseUnityPlugin
 			.Sub("chestlock_key", ItemLock.Plugin.ChestKey);
 	}
 
+	private void Start()
+	{
+		ItemLock.SacrificeGuard.Register(); // EpicLoot 0.15.2: kein Opfern von Items mit Schloss
+		ItemLock.EpicLootGuard.Patch(new Harmony(GcMod.Guid)); // EpicLoot 0.15.4: Schutz in allen Fenstern des Verzaubertischs
+	}
+
 	private void Update()
 	{
 		if (Gc.IsHeadless)

@@ -29,8 +29,11 @@ public partial class Plugin : BaseUnityPlugin
 			.Main("stationmenu", StationStorage.Plugin.MenuEnabled, () => StationStorage.Plugin.Blocked, "GC_StationStorage")
 			.Main("stationchests", StationStorage.Plugin.ChestsEnabled, () => StationStorage.Plugin.Blocked, "GC_StationStorage", requires: () => Gc.VPlusLoaded)
 			.Sub("stationchests_distance", StationStorage.Plugin.MaxChestDistance, 5, " m")
-			.Sub("stationchests_highlight", StationStorage.Plugin.HighlightWhileOpen);
+			.Sub("stationchests_highlight", StationStorage.Plugin.HighlightWhileOpen)
+			.Sub("stationchests_table", StationStorage.Plugin.TableChests);
 	}
+
+	private void Start() => StationStorage.EnchantingChests.Register(new Harmony(GcMod.Guid)); // EpicLoot-Verzaubertisch: erst wenn alle Mods geladen sind
 
 	private void Update()
 	{

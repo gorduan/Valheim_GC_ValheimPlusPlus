@@ -158,7 +158,9 @@ internal static class Plugin
 		}
 		if (Links.Link(proxy, master))
 		{
-			Gc.Center(GcLoc.Get("gclc_linked", Links.Group(master).Count));
+			// der Besitzer setzt die Verbindung, bei einem anderen Spieler kommt sie erst gleich an: dann mitzählen
+			List<Container> group = Links.Group(master, true);
+			Gc.Center(GcLoc.Get("gclc_linked", group.Count + (group.Contains(proxy) ? 0 : 1)));
 		}
 	}
 }
@@ -166,18 +168,78 @@ internal static class Plugin
 /// <summary>Verbindungen: welche geladenen Kisten zu einer Gruppe gehören.</summary>
 internal static class Links
 {
+	/// <summary>RPC an den Besitzer einer Kiste: Hauptkisten-ID setzen oder lösen (Review 27.10.2026, statt ClaimOwnership).</summary>
+	internal const string RpcSetMaster = "GC_LinkMaster";
+
 	private static readonly HashSet<Container> Known = new();
+
+	/// <summary>
+	/// Verzeichnis Hauptkisten-ID → damit verbundene geladene Kisten, höchstens alle 0,5 s neu aufgebaut (Review 27.10.2026:
+	/// Group lief bei jedem Aufruf über alle geladenen Kisten, in der V+-Automatik und im Hover-Text sehr oft je Sekunde).
+	/// Eigene Änderungen und neue oder entfernte Kisten bauen es sofort neu, Änderungen anderer Spieler gelten nach
+	/// höchstens 0,5 s.
+	/// </summary>
+	private static readonly Dictionary<string, List<Container>> ByRoot = new();
+	private static float indexUntil = -1f;
+	private const float IndexLifetime = 0.5f;
 
 	public static void Register(Container c)
 	{
 		GcIds.Track(c, c.m_nview);
 		Known.Add(c);
+		Invalidate();
 	}
 
 	public static void Forget(Container c)
 	{
 		Known.Remove(c);
 		GcIds.Untrack(c);
+		Invalidate();
+	}
+
+	public static void Invalidate() => indexUntil = -1f;
+
+	private static float retrackUntil = -1f;
+
+	/// <summary>
+	/// Kiste zur dauerhaften ID. GcIds kennt eine ID nur, wenn die Kiste hier lud (Register) oder die ID hier vergeben wurde;
+	/// hat ein anderer Spieler sie später vergeben (erstes Verbinden, erste Zuweisung), fände GcIds.Find sie bis zum
+	/// nächsten Laden nicht, und Gruppe oder Zuweisung fehlten. Fehlt eine ID, werden deshalb höchstens alle 0,5 s alle
+	/// geladenen Kisten neu eingetragen (Review 27.10.2026, beim Prüfen des Datenabgleichs gefunden).
+	/// </summary>
+	public static Container? Find(string id)
+	{
+		Container? found = GcIds.Find(id);
+		if (found != null || string.IsNullOrEmpty(id) || Time.unscaledTime < retrackUntil)
+		{
+			return found;
+		}
+		retrackUntil = Time.unscaledTime + IndexLifetime;
+		Known.RemoveWhere(k => k == null);
+		foreach (Container k in Known)
+		{
+			GcIds.Track(k, k.m_nview);
+		}
+		return GcIds.Find(id);
+	}
+
+	private static Dictionary<string, List<Container>> Index()
+	{
+		if (Time.unscaledTime < indexUntil)
+		{
+			return ByRoot;
+		}
+		indexUntil = Time.unscaledTime + IndexLifetime;
+		ByRoot.Clear();
+		Known.RemoveWhere(k => k == null);
+		foreach (IGrouping<string, Container> linked in Known.Where(k => k.m_nview != null && k.m_nview.IsValid()).GroupBy(MasterId))
+		{
+			if (linked.Key.Length > 0)
+			{
+				ByRoot[linked.Key] = linked.OrderBy(OwnId, StringComparer.Ordinal).ToList();
+			}
+		}
+		return ByRoot;
 	}
 
 	public static string OwnId(Container c) => GcIds.Read(c.m_nview);
@@ -202,8 +264,11 @@ internal static class Links
 		return id.Length > 0 && Known.Any(k => k != null && k != c && MasterId(k) == id);
 	}
 
-	/// <summary>Geladene Kisten der Gruppe: Hauptkiste zuerst, dann nach ihrer ID (feste Reihenfolge). Ohne Gruppe nur die Kiste selbst.</summary>
-	public static List<Container> Group(Container c)
+	/// <summary>
+	/// Geladene Kisten der Gruppe: Hauptkiste zuerst, dann nach ihrer ID (feste Reihenfolge). Ohne Gruppe nur die Kiste
+	/// selbst. fresh = Verzeichnis jetzt neu aufbauen (beim Öffnen der Ansicht, nach eigenem Verbinden).
+	/// </summary>
+	public static List<Container> Group(Container c, bool fresh = false)
 	{
 		List<Container> single = new() { c };
 		if (!Plugin.On || c == null || !GcWard.IsPlayerChest(c))
@@ -215,12 +280,22 @@ internal static class Links
 		{
 			return single;
 		}
-		Known.RemoveWhere(k => k == null);
-		List<Container> members = Known
-			.Where(k => k.m_nview != null && k.m_nview.IsValid() && MasterId(k) == root)
-			.OrderBy(OwnId, StringComparer.Ordinal)
-			.ToList();
-		Container? master = GcIds.Find(root);
+		if (fresh)
+		{
+			Invalidate();
+		}
+		List<Container> members = new();
+		if (Index().TryGetValue(root, out List<Container> linked))
+		{
+			foreach (Container k in linked)
+			{
+				if (k != null && k.m_nview != null && k.m_nview.IsValid())
+				{
+					members.Add(k); // Kopie: Aufrufer dürfen die Liste behalten, das Verzeichnis bleibt unberührt
+				}
+			}
+		}
+		Container? master = Find(root);
 		if (master != null && !members.Contains(master))
 		{
 			members.Insert(0, master);
@@ -230,27 +305,54 @@ internal static class Links
 
 	public static bool Link(Container proxy, Container master)
 	{
+		// Die IDs vergibt der Kern (GcIds.Ensure, beim ersten Mal mit Besitzübernahme), die Verbindung setzt der Besitzer
 		string? masterId = GcIds.Ensure(master, master.m_nview);
 		ZNetView own = proxy.m_nview;
-		if (masterId == null || GcIds.InUse(own) || !Gc.Own(own) || GcIds.Ensure(proxy, own) == null)
+		if (masterId == null || GcIds.InUse(own) || GcIds.Ensure(proxy, own) == null)
 		{
 			Gc.Center(GcLoc.Get("gclc_busy"));
 			return false;
 		}
-		own.GetZDO().Set(GcKeys.LinkMaster, masterId);
+		SetMaster(own, masterId);
 		return true;
 	}
 
 	public static bool Unlink(Container proxy)
 	{
 		ZNetView own = proxy.m_nview;
-		if (GcIds.InUse(own) || proxy.m_inUse || !Gc.Own(own))
+		if (own == null || !own.IsValid() || GcIds.InUse(own) || proxy.m_inUse)
 		{
 			Gc.Center(GcLoc.Get("gclc_busy"));
 			return false;
 		}
-		own.GetZDO().Set(GcKeys.LinkMaster, "");
+		SetMaster(own, "");
 		return true;
+	}
+
+	/// <summary>
+	/// Verbindung beim Besitzer der Kiste setzen, wie Rpcs.Assign im Gebäude-Menü (Review 27.10.2026). Vorher übernahm der
+	/// Spieler den Besitz und schrieb seinen womöglich veralteten Stand; hatte der bisherige Besitzer schon dieselbe
+	/// DataRevision verschickt, verwarf der Server die Änderung und die Stände liefen auseinander. Nur ohne Besitzer
+	/// übernimmt der Spieler die Kiste selbst, dann gibt es keinen fremden Stand.
+	/// </summary>
+	private static void SetMaster(ZNetView view, string masterId)
+	{
+		if (!view.GetZDO().HasOwner())
+		{
+			view.ClaimOwnership();
+		}
+		view.InvokeRPC(RpcSetMaster, masterId); // an den Besitzer; sind wir das selbst, läuft es sofort
+		Invalidate();
+	}
+
+	/// <summary>Beim Besitzer der Kiste: Verbindung setzen oder lösen.</summary>
+	internal static void OnSetMaster(ZNetView view, string masterId)
+	{
+		if (view != null && view.IsValid() && view.IsOwner())
+		{
+			view.GetZDO().Set(GcKeys.LinkMaster, masterId);
+			Invalidate();
+		}
 	}
 }
 
@@ -295,6 +397,10 @@ internal static class LinkedView
 	private static bool reportedBusy;
 	private static int batchDepth;
 	private static bool batchDirty;
+
+	/// <summary>Nächste Prüfung, ob eine echte Kiste an der Ansicht vorbei verändert wurde (Review 27.10.2026: nicht mehr jedes Bild).</summary>
+	private static float nextOutsideCheck;
+	private const float OutsideCheckInterval = 0.5f;
 
 	public static bool Active => Shown != null && Virtual != null && built;
 
@@ -450,7 +556,7 @@ internal static class LinkedView
 	public static void Begin(Container shown)
 	{
 		End();
-		List<Container> group = Links.Group(shown);
+		List<Container> group = Links.Group(shown, true); // beim Öffnen immer den aktuellen Stand
 		if (group.Count < 2 || Game.instance == null)
 		{
 			return;
@@ -573,13 +679,19 @@ internal static class LinkedView
 		{
 			return; // ohne Besitz könnten Änderungen nicht gespeichert werden
 		}
+		// Fingerabdrücke aller Mitglieder höchstens alle 0,5 s bilden (Review 27.10.2026: vorher jedes Bild über alle Items)
+		bool checkOutside = built && Time.unscaledTime >= nextOutsideCheck;
+		if (checkOutside)
+		{
+			nextOutsideCheck = Time.unscaledTime + OutsideCheckInterval;
+		}
 		foreach (Member m in Members)
 		{
 			if (m.Chest != Shown)
 			{
 				m.Chest.SetInUse(true);
 			}
-			if (built && m.InView && Signature(m.Real.m_inventory) != m.Synced)
+			if (checkOutside && m.InView && Signature(m.Real.m_inventory) != m.Synced)
 			{
 				rebuildWanted = true; // eine echte Kiste wurde an der Ansicht vorbei verändert
 			}
@@ -741,27 +853,46 @@ internal static class LinkedView
 		}
 	}
 
-	/// <summary>Genau derselbe Inhalt? (Vergleich Feld für Feld nach Platz, nicht über Fingerabdrücke.)</summary>
-	private static bool SameContent(List<ItemDrop.ItemData> a, List<ItemDrop.ItemData> b)
+	/// <summary>Ein Platz einer echten Kiste (Zeile mal Breite plus Spalte) mit dem Item der Ansicht, das dorthin gehört (noch keine Kopie).</summary>
+	private readonly struct Slot
 	{
-		if (a.Count != b.Count)
+		public readonly int Local;
+		public readonly ItemDrop.ItemData Item;
+
+		public Slot(int local, ItemDrop.ItemData item)
+		{
+			Local = local;
+			Item = item;
+		}
+	}
+
+	/// <summary>Echte Items einer Kiste nach Platz. null = ein Item liegt außerhalb oder ein Platz ist doppelt belegt: dann ganz neu schreiben.</summary>
+	private static Dictionary<int, ItemDrop.ItemData>? ByLocal(Member m)
+	{
+		Dictionary<int, ItemDrop.ItemData> result = new(m.Real.m_inventory.Count);
+		foreach (ItemDrop.ItemData item in m.Real.m_inventory)
+		{
+			Vector2i pos = item.m_gridPos;
+			int local = pos.y * m.Width + pos.x;
+			if (pos.x < 0 || pos.y < 0 || pos.x >= m.Width || local >= m.Capacity || result.ContainsKey(local))
+			{
+				return null;
+			}
+			result[local] = item;
+		}
+		return result;
+	}
+
+	/// <summary>Genau derselbe Inhalt? (Vergleich Feld für Feld nach Platz, nicht über Fingerabdrücke, und ohne Kopien.)</summary>
+	private static bool SameContent(Dictionary<int, ItemDrop.ItemData> real, List<Slot> wanted)
+	{
+		if (real.Count != wanted.Count)
 		{
 			return false;
 		}
-		Dictionary<long, ItemDrop.ItemData> byPos = new(a.Count);
-		foreach (ItemDrop.ItemData item in a)
+		foreach (Slot slot in wanted)
 		{
-			long key = ((long)item.m_gridPos.y << 32) | (uint)item.m_gridPos.x;
-			if (byPos.ContainsKey(key))
-			{
-				return false; // doppelt belegt: lieber schreiben
-			}
-			byPos[key] = item;
-		}
-		foreach (ItemDrop.ItemData item in b)
-		{
-			long key = ((long)item.m_gridPos.y << 32) | (uint)item.m_gridPos.x;
-			if (!byPos.TryGetValue(key, out ItemDrop.ItemData other) || !SameItem(item, other))
+			if (!real.TryGetValue(slot.Local, out ItemDrop.ItemData other) || !SameItem(slot.Item, other))
 			{
 				return false;
 			}
@@ -879,14 +1010,18 @@ internal static class LinkedView
 
 	public static bool IsDead(int x, int y) => x < 0 || y < 0 || x >= width || y * width + x >= total;
 
-	/// <summary>Jede Änderung der Ansicht sofort auf die echten Kisten verteilen und dort speichern.</summary>
+	/// <summary>
+	/// Jede Änderung der Ansicht sofort auf die echten Kisten verteilen und dort speichern. Review 27.10.2026: Erst wird nur
+	/// zugeordnet und verglichen; geklont wird beim Schreiben und nur für Kisten, die sich geändert haben, und dort behalten
+	/// unveränderte Plätze ihr Item-Objekt. Vorher klonte jede Änderung alle Items der Ansicht (EpicLoot serialisiert dabei).
+	/// </summary>
 	private static void Distribute()
 	{
 		Inventory view = Virtual!;
 		applying = true;
 		try
 		{
-			List<List<ItemDrop.ItemData>> buckets = Members.Select(_ => new List<ItemDrop.ItemData>()).ToList();
+			List<List<Slot>> buckets = Members.Select(_ => new List<Slot>()).ToList();
 			List<HashSet<int>> used = Members.Select(_ => new HashSet<int>()).ToList();
 			List<ItemDrop.ItemData> lost = new();
 			foreach (ItemDrop.ItemData item in view.m_inventory)
@@ -898,7 +1033,7 @@ internal static class LinkedView
 					lost.Add(item);
 					continue;
 				}
-				Place(buckets[i], Members[i], index - Members[i].Offset, item);
+				buckets[i].Add(new Slot(index - Members[i].Offset, item));
 			}
 			foreach (ItemDrop.ItemData item in lost)
 			{
@@ -915,17 +1050,31 @@ internal static class LinkedView
 				{
 					continue;
 				}
-				if (Signature(m.Real.m_inventory) != m.Synced)
+				int current = Signature(m.Real.m_inventory);
+				if (current != m.Synced)
 				{
 					Plugin.Log.LogWarning($"Verbundene Kisten: {m.Chest.m_name} wurde an der Ansicht vorbei verändert, die Ansicht gilt.");
 				}
-				if (SameContent(m.Real.m_inventory, buckets[i]))
+				Dictionary<int, ItemDrop.ItemData>? before = ByLocal(m);
+				if (before != null && SameContent(before, buckets[i]))
 				{
-					m.Synced = Signature(m.Real.m_inventory);
-					continue; // diese Kiste hat sich nicht geändert: nicht neu speichern
+					m.Synced = current;
+					continue; // diese Kiste hat sich nicht geändert: nicht klonen, nicht neu speichern
+				}
+				List<ItemDrop.ItemData> fresh = new(buckets[i].Count);
+				foreach (Slot slot in buckets[i])
+				{
+					if (before != null && before.TryGetValue(slot.Local, out ItemDrop.ItemData keep) && SameItem(slot.Item, keep))
+					{
+						fresh.Add(keep); // Platz unverändert: dasselbe Objekt, kein Klon
+						continue;
+					}
+					ItemDrop.ItemData copy = slot.Item.Clone();
+					copy.m_gridPos = new Vector2i(slot.Local % m.Width, slot.Local / m.Width);
+					fresh.Add(copy);
 				}
 				m.Real.m_inventory.Clear();
-				m.Real.m_inventory.AddRange(buckets[i]);
+				m.Real.m_inventory.AddRange(fresh);
 				m.Real.Changed(); // Container.OnContainerChanged speichert (Container.Save nimmt das echte Inventar)
 				m.Synced = Signature(m.Real.m_inventory);
 			}
@@ -940,14 +1089,7 @@ internal static class LinkedView
 		}
 	}
 
-	private static void Place(List<ItemDrop.ItemData> bucket, Member m, int local, ItemDrop.ItemData item)
-	{
-		ItemDrop.ItemData copy = item.Clone();
-		copy.m_gridPos = new Vector2i(local % m.Width, local / m.Width);
-		bucket.Add(copy);
-	}
-
-	private static bool PlaceAnywhere(List<List<ItemDrop.ItemData>> buckets, List<HashSet<int>> used, ItemDrop.ItemData item)
+	private static bool PlaceAnywhere(List<List<Slot>> buckets, List<HashSet<int>> used, ItemDrop.ItemData item)
 	{
 		for (int i = 0; i < Members.Count; i++)
 		{
@@ -962,7 +1104,7 @@ internal static class LinkedView
 				{
 					int index = m.Offset + local;
 					item.m_gridPos = new Vector2i(index % width, index / width); // auch in der Ansicht an den neuen Platz
-					Place(buckets[i], m, local, item);
+					buckets[i].Add(new Slot(local, item));
 					return true;
 				}
 			}
@@ -1013,12 +1155,19 @@ internal static class AwakePatch
 	[HarmonyPriority(Priority.First)]
 	private static void Postfix(Container __instance)
 	{
-		if (__instance.m_nview == null || __instance.m_nview.GetZDO() == null)
+		ZNetView nview = __instance.m_nview;
+		if (nview == null || nview.GetZDO() == null)
 		{
 			return;
 		}
 		__instance.gameObject.AddComponent<LinkTracker>().Container = __instance;
 		Links.Register(__instance);
+		// Verbindung beim Besitzer setzen (Review 27.10.2026). Mehrere Behälter an einem ZNetView (m_rootObjectOverride):
+		// nur einmal registrieren, doppelt würde werfen und die übrigen Postfixe von Container.Awake abbrechen.
+		if (!nview.m_functions.ContainsKey(Links.RpcSetMaster.GetStableHashCode()))
+		{
+			nview.Register<string>(Links.RpcSetMaster, (sender, masterId) => Links.OnSetMaster(nview, masterId));
+		}
 	}
 }
 
@@ -1044,6 +1193,10 @@ internal static class ShowPatch
 		if (!Plugin.On || container == null || __instance.m_currentContainer != container || LinkedView.Shown == container)
 		{
 			return;
+		}
+		if (!VPlusDedupe.Ready)
+		{
+			return; // V+ würde die Ansicht mehrfach zählen (Einhängung fehlt): Kisten öffnen einzeln, Review 27.10.2026
 		}
 		LinkedView.Begin(container);
 	}
@@ -1300,21 +1453,36 @@ internal static class GridPatch
 
 // ------------------------------------------------------------------ Anzeige in der Welt
 
+/// <summary>Hover-Text: Gruppe und Taste. Höchstens zweimal je Sekunde neu gebaut (Review 27.10.2026: vorher jedes Bild über alle Kisten).</summary>
 [HarmonyPatch(typeof(Container), nameof(Container.GetHoverText))]
 internal static class HoverPatch
 {
+	private static Container? last;
+	private static float until;
+	private static string suffix = "";
+
 	private static void Postfix(Container __instance, ref string __result)
 	{
-		if (!Plugin.On || string.IsNullOrEmpty(__result) || !GcWard.IsPlayerChest(__instance))
+		if (!Plugin.On || string.IsNullOrEmpty(__result))
 		{
 			return;
 		}
-		int count = Links.Group(__instance).Count;
-		if (count > 1)
+		if (__instance != last || Time.unscaledTime >= until)
 		{
-			__result += "\n" + GcLoc.Get("gclc_hover_group", count);
+			last = __instance;
+			until = Time.unscaledTime + 0.5f;
+			suffix = "";
+			if (GcWard.IsPlayerChest(__instance))
+			{
+				int count = VPlusDedupe.Ready ? Links.Group(__instance).Count : 1; // ohne Ansicht kein „Öffnen zeigt alle"
+				if (count > 1)
+				{
+					suffix += "\n" + GcLoc.Get("gclc_hover_group", count);
+				}
+				suffix += "\n" + GcLoc.Get("gclc_hover_key", Plugin.LinkKey.Value.ToString());
+			}
 		}
-		__result += "\n" + GcLoc.Get("gclc_hover_key", Plugin.LinkKey.Value.ToString());
+		__result += suffix;
 	}
 }
 
@@ -1367,37 +1535,63 @@ internal static class GroupHighlight
 /// </summary>
 internal static class VPlusDedupe
 {
+	/// <summary>
+	/// Darf die gemeinsame Ansicht öffnen? Mit ValheimPlus nur, wenn alle drei Einhängungen aktiv sind, sonst zählte V+
+	/// (Craften aus Kisten, Maschinen) die Ansicht je Kiste der Gruppe einmal. Ohne V+ immer (Review 27.10.2026).
+	/// </summary>
+	internal static bool Ready { get; private set; } = true;
+
+	/// <summary>Review 27.10.2026: jede Einhängung einzeln abgesichert (VppPatch), Parameter per Position.</summary>
 	internal static void Apply(Harmony harmony)
 	{
 		if (!Gc.VPlusLoaded)
 		{
 			return;
 		}
-		Type? assistant = AccessTools.TypeByName("ValheimPlus.InventoryAssistant");
-		if (assistant == null)
+		Ready = false;
+		int active = 0;
+		const int total = 3;
+		try
 		{
-			Plugin.Log.LogWarning("ValheimPlus gefunden, aber InventoryAssistant nicht. Offene verbundene Kisten könnten dort doppelt zählen.");
-			return;
-		}
-		foreach (string name in new[] { "GetNearbyChests", "GetNearbyChestsForMachine" })
-		{
-			MethodInfo? method = AccessTools.Method(assistant, name);
-			if (method != null)
+			Type? assistant = AccessTools.TypeByName("ValheimPlus.InventoryAssistant");
+			if (assistant == null)
 			{
-				harmony.Patch(method, postfix: new HarmonyMethod(typeof(VPlusDedupe), nameof(Canonicalize)) { priority = Priority.Low });
+				Plugin.Log.LogWarning("ValheimPlus: ValheimPlus.InventoryAssistant nicht gefunden.");
+			}
+			else
+			{
+				foreach (string name in new[] { "GetNearbyChests", "GetNearbyChestsForMachine" })
+				{
+					if (VppPatch.Try(harmony, VppPatch.Find(assistant, name), "InventoryAssistant." + name, postfix: new HarmonyMethod(typeof(VPlusDedupe), nameof(Canonicalize)) { priority = Priority.Low }))
+					{
+						active++;
+					}
+				}
+				// V+ merkt sich die Kistenliste einige Sekunden (Craften aus Kisten). Wurde sie vor dem Öffnen der Ansicht gefüllt,
+				// stünde die Gruppe mehrfach darin und ihre Items zählten mehrfach: beim Zählen dieselbe Bereinigung anwenden.
+				if (VppPatch.Try(harmony, VppPatch.Find(assistant, "GetNearbyChestItemsByContainerList"), "InventoryAssistant.GetNearbyChestItemsByContainerList", prefix: new HarmonyMethod(typeof(VPlusDedupe), nameof(CanonicalizeArgument)) { priority = Priority.First }))
+				{
+					active++;
+				}
 			}
 		}
-		// V+ merkt sich die Kistenliste einige Sekunden (Craften aus Kisten). Wurde sie vor dem Öffnen der Ansicht gefüllt,
-		// stünde die Gruppe mehrfach darin und ihre Items zählten mehrfach: beim Zählen dieselbe Bereinigung anwenden.
-		MethodInfo? items = AccessTools.Method(assistant, "GetNearbyChestItemsByContainerList");
-		if (items != null)
+		catch (Exception e)
 		{
-			harmony.Patch(items, prefix: new HarmonyMethod(typeof(VPlusDedupe), nameof(CanonicalizeArgument)) { priority = Priority.First });
+			Plugin.Log.LogWarning($"ValheimPlus: Einhängen abgebrochen: {e.Message}");
 		}
-		Plugin.Log.LogInfo("ValheimPlus erkannt: offene verbundene Kisten zählen dort als eine Kiste, fremd geöffnete und nicht geladene Kisten werden ausgelassen.");
+		Ready = active == total;
+		if (Ready)
+		{
+			Plugin.Log.LogInfo($"ValheimPlus erkannt: {active} von {total} V+-Einhängungen aktiv. Offene verbundene Kisten zählen dort als eine Kiste, fremd geöffnete und nicht geladene Kisten werden ausgelassen.");
+		}
+		else
+		{
+			Plugin.Log.LogWarning($"ValheimPlus: nur {active} von {total} V+-Einhängungen aktiv. Damit V+ nichts doppelt zählt, öffnen verbundene Kisten einzeln (keine gemeinsame Ansicht).");
+		}
 	}
 
 	private static void Canonicalize(ref List<Container> __result) => LinkedView.CanonicalizeList(ref __result);
 
-	private static void CanonicalizeArgument(ref List<Container> nearbyChests) => LinkedView.CanonicalizeList(ref nearbyChests);
+	/// <summary>V+ GetNearbyChestItemsByContainerList(List&lt;Container&gt; nearbyChests): Parameter per Position.</summary>
+	private static void CanonicalizeArgument(ref List<Container> __0) => LinkedView.CanonicalizeList(ref __0);
 }

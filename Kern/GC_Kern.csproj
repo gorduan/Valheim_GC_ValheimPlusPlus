@@ -14,5 +14,7 @@
   <ItemGroup>
     <!-- Mod-Liste: manifest.json der Pakete lesen (JsonUtility); keine Web-Anfragen mehr (Update-Prüfung entfernt, 25.10.2026) -->
     <Reference Include="UnityEngine.JSONSerializeModule" HintPath="$(Managed)\UnityEngine.JSONSerializeModule.dll" Private="false" />
+    <!-- DeepTip (gorduan.deeptip): feste Abhängigkeit seit 1.9.0 (Gorduan, 30.10.2026), Erklärfenster für alle GC-Mods -->
+    <Reference Include="GC_Valheim_DeepTip" HintPath="$(DeepTipDll)" Private="false" />
   </ItemGroup>
 </Project>

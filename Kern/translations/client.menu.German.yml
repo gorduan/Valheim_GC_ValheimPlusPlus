@@ -101,7 +101,7 @@ gccm_t_portalguard_key_name: "Taste: alten Namen wiederherstellen"
 gccm_t_portalguard_key_desc: "Halten und das Portal benutzen (Standard Umschalt+E). E allein öffnet weiter den Umbenennen-Dialog."
 
 gccm_t_portalnames_name: "Portalnamen-Liste"
-gccm_t_portalnames_desc: "Beim Umbenennen eines Portals erscheint daneben eine Liste gemerkter Namen. Mit GC_Server und GC_Guilds kommen Server- und Gildenlisten dazu."
+gccm_t_portalnames_desc: "Beim Umbenennen eines Portals erscheint daneben eine Liste gemerkter Namen. Hat der Server die Mod, kommt seine Liste dazu, mit GC_Guilds auch die deiner Gilde."
 gccm_t_portalnames_click_name: "Klick benennt sofort um"
 gccm_t_portalnames_click_desc: "Aus: Der Name wird nur ins Eingabefeld geschrieben."
 

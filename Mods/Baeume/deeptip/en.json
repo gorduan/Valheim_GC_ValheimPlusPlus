@@ -1,0 +1,29 @@
+{
+  "$locale": "en",
+  "gc.baeume": {
+    "title": "Trees regrow",
+    "short": "Tree stumps grow back into a tree after the growth time of a sapling.",
+    "body": "The mod lets felled trees [[gc.baeume.treeregrow|grow back]]: after the waiting time the stump turns into the same tree again. It belongs to the **ValheimPlusPlus** package ([[gc.kern.stufe|level]] 4 “GC light”), and the server and all players need it.\n\nThe switch and the waiting times are [[gc.serverrules|server rules]]; only the [[gc.baeume.treeregrowhover|remaining time on stumps]] is up to you.",
+    "see": ["gc.baeume.treeregrow_override", "gc.baeume.treeregrow_spread"]
+  },
+  "gc.baeume.treeregrow": {
+    "title": "Trees grow back",
+    "short": "Stumps turn back into the same tree after the growth time of its sapling.",
+    "body": "When a tree is felled, its stump remembers which tree stood there and makes it reappear with a growth animation after the waiting time. The waiting time is that of the matching sapling in the game; trees without a sapling, for example in the [[valheim.biome.swamp|Swamp]] or the [[valheim.biome.ashlands|Ashlands]], need {gc_baeume_treeregrow_fallback}, and a [[gc.baeume.treeregrow_override|fixed waiting time]] replaces both. The time runs in game time and is stored in the stump, even across restarts.\n\nIf you remove the stump or build something right on it, nothing grows back. Stumps from world generation stay stumps."
+  },
+  "gc.baeume.treeregrow_override": {
+    "title": "Fixed waiting time",
+    "short": "0 uses the sapling's growth time; above 0 this game time applies to all trees.",
+    "body": "Currently {gc_baeume_treeregrow_override}. At 0 every stump waits as long as the sapling of its tree; if another mod changes that time, its value applies. Above 0 the time applies to all trees, including those without a sapling; one Valheim day lasts 30 minutes. Fixed times vary by the [[gc.baeume.treeregrow_spread|random spread]]."
+  },
+  "gc.baeume.treeregrow_spread": {
+    "title": "Random spread",
+    "short": "Varies fixed waiting times so that not all trees grow back at once.",
+    "body": "Currently {gc_baeume_treeregrow_spread}; 0.25 means plus or minus 25 %. It applies to the [[gc.baeume.treeregrow_override|fixed waiting time]] and the time without a sapling, because sapling times already have their own range."
+  },
+  "gc.baeume.treeregrowhover": {
+    "title": "Remaining time on stumps",
+    "short": "The hover text of a stump shows when the tree grows back.",
+    "body": "When you look at a stump, its state shows like on plants: the remaining time, “grows back any moment” or “blocked by a building piece”. Stumps that do not [[gc.baeume.treeregrow|grow back]] show nothing of this. This display is your own setting."
+  }
+}

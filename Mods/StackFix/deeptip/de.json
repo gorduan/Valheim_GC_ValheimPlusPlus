@@ -1,0 +1,18 @@
+{
+  "$locale": "de",
+  "gc.stackfix": {
+    "title": "Auto-Stack-Fix für ValheimPlus",
+    "short": "Das Auto-Stack von ValheimPlus lagert auch Rüstung, Schmuck und EpicLoot-Items ein; die Schnellleiste bleibt geschützt.",
+    "body": "Die Mod bringt zwei Funktionen: [[gc.stackfix.stackfix]], das nur mit ValheimPlus wirkt, und [[gc.stackfix.hotbar]]. Sie gehört zum Paket **ValheimPlusPlus** ([[gc.kern.stufe|Stufe]] 3 „Vanilla+“) und läuft nur bei dir; erlaubt ein Server nur eine niedrigere Stufe, ist sie dort aus.\n\nEinstellen im [[gc.option|Menü GC Option]]; ganz abschalten lässt sich die Mod im Reiter [[gc.modswitch|Mods]]."
+  },
+  "gc.stackfix.stackfix": {
+    "title": "Rüstung, Schmuck und EpicLoot-Materialien einlagern",
+    "short": "Das Auto-Stack von ValheimPlus lagert Rüstung, Schilde, Schmuck und EpicLoot-Materialien wieder in passende Kisten ein.",
+    "body": "Soll ValheimPlus beim Auto-Stack Ausrüstung auslassen, überspringt es jedes ausrüstbare Item; EpicLoot-Items landen so nie in der Kiste, auch wenn dort dasselbe Item liegt. Mit dieser Funktion wandern Rüstung, Schilde und Schmuck, auch magische, wieder in Kisten, die dasselbe Item enthalten. Ebenso EpicLoot-Materialien wie Staub, Essenzen, Reagenzien, Runen- und Splittersteine, die ValheimPlus wegen eines Kennzeichens für Munition hält.\n\nWaffen, Werkzeuge, Fackeln und echte Munition folgen weiter der Einstellung von ValheimPlus. Angelegte Items, auf Wunsch die [[gc.stackfix.hotbar|Schnellleiste]] und [[gc.schloesser.itemlock|fixierte Items]] bleiben im Inventar."
+  },
+  "gc.stackfix.hotbar": {
+    "title": "Schnellleiste schützen",
+    "short": "Items in der obersten Inventarreihe landen beim Stapeln nie in Kisten.",
+    "body": "Das gilt für jedes Stapeln aus deinem Inventar in Kisten, mit und ohne ValheimPlus: den Knopf „Stapel ablegen“, E halten an einer Kiste und das Auto-Stack von ValheimPlus. So bleiben Werkzeuge, Waffen und Essen auf den Tasten 1 bis 8 bei dir. Einzelne Items schützt du überall mit den [[gc.schloesser.itemlock|Schlössern]]."
+  }
+}

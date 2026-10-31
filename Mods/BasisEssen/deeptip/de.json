@@ -1,0 +1,19 @@
+{
+  "$locale": "de",
+  "gc.basisessen": {
+    "title": "Weniger Hunger in der Basis (Mod)",
+    "short": "Essen läuft an der Werkbank und im Bereich eines Wächtersteins langsamer ab.",
+    "body": "Die Mod sorgt für [[gc.basisessen.basefood|weniger Hunger in der Basis]]: Im Bereich einer Werkbank oder eines aktiven Wächtersteins hält dein Essen länger. Sie gehört zum Paket **ValheimPlusPlus** ([[gc.kern.stufe|Stufe]] 4 „GC leicht“); Server und alle Spieler brauchen sie, und alle Werte sind [[gc.serverrules|Server-Regeln]].\n\nWeil sie das Spiel leichter macht, bringt sie beim [[gc.kern.bossscale|Boss-Fortschritt]] einen Ausgleich von 1 % je besiegtem Boss mit, solange sie eingeschaltet ist; es zählt der höchste Wert aller laufenden Mods.",
+    "see": ["gc.basisessen.basefood_access"]
+  },
+  "gc.basisessen.basefood": {
+    "title": "Weniger Hunger in der Basis",
+    "short": "Essen hält länger im Bereich einer Werkbank oder eines aktiven Wächtersteins.",
+    "body": "Im Bauradius einer [[valheim.station.workbench|Werkbank]] sinkt dein Hungerverlust um {gc_basisessen_basefood_workbench}, dein [[valheim.food.food|Essen]] hält also länger; im Bereich eines aktiven Wächtersteins sinkt er um {gc_basisessen_basefood_ward}. 100 % heißt gar kein Hungerverlust, und stehst du in beiden Bereichen, gilt der größere Wert.\n\nStandardmäßig zählt nur die Werkbank als Station, und nur Wächtersteine, auf die du [[gc.basisessen.basefood_access|Zugriff]] hast. Andere Mods, die die Essensdauer ändern, etwa ValheimPlus, wirken weiter; die Ersparnis kommt hinzu."
+  },
+  "gc.basisessen.basefood_access": {
+    "title": "Nur Wächtersteine mit Zugriff",
+    "short": "Nur eigene oder freigegebene Wächtersteine senken den Hunger.",
+    "body": "An: Es zählt nur ein aktiver Wächterstein, auf den du Zugriff hast, also dein eigener oder einer, für den du freigeschaltet bist. Aus: Jeder aktive Wächterstein zählt, auch ein fremder. Die Einstellung ist eine [[gc.serverrules|Server-Regel]]."
+  }
+}

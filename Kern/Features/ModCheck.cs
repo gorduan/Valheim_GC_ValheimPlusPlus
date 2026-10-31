@@ -283,6 +283,21 @@ internal static class ServerInfoResetPatch
 	private static void Postfix() => GcKern.Server = null;
 }
 
+/// <summary>
+/// Neue Sitzung (Review 27.10.2026): Bericht und „schon gezeigt“ der vorigen Sitzung vergessen. Nicht beim Beenden: Scheitert
+/// eine Verbindung, braucht ShowConnectError den Bericht dieses Versuchs noch, nachdem ZNet zerstört ist.
+/// </summary>
+[HarmonyPatch(typeof(ZNet), "Awake")]
+internal static class SessionResetPatch
+{
+	private static void Prefix()
+	{
+		Plugin.ServerMods = null;
+		Plugin.LastReport = null;
+		SpawnPatch.shown = false;
+	}
+}
+
 [HarmonyPatch(typeof(FejdStartup), nameof(FejdStartup.ShowConnectError))]
 internal static class ConnectErrorPatch
 {
@@ -298,7 +313,7 @@ internal static class ConnectErrorPatch
 [HarmonyPatch(typeof(Player), nameof(Player.OnSpawned))]
 internal static class SpawnPatch
 {
-	private static bool shown;
+	internal static bool shown;
 
 	private static void Postfix(Player __instance)
 	{
@@ -348,9 +363,13 @@ internal static class ReportWindow
 		text = report.ToText();
 		header!.text = GcLoc.Get(report.HasProblems ? "gcm_header_problems" : "gcm_header_ok");
 		body!.text = Colorize(report);
-		window!.SetActive(true);
+		bool wasOpen = window!.activeSelf;
+		window.SetActive(true);
 		window.transform.SetAsLastSibling();
-		GUIManager.BlockInput(true);
+		if (!wasOpen)
+		{
+			GUIManager.BlockInput(true); // Jötunn zählt Anfragen, „Schließen“ gibt nur einmal frei (Review 27.10.2026: zweimal modcheck sperrte bis zum Ausloggen)
+		}
 	}
 
 	private static string Colorize(Report report)

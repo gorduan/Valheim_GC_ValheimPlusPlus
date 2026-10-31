@@ -17,7 +17,7 @@ namespace GC.ValheimPlusPlus.ItemLock;
 /// Weißes Schloss (Alt+Linksklick): Das Item bleibt auf seinem Platz. Es wird nicht in Kisten gestapelt (Vanilla
 /// „Stapel ablegen", E halten, V+ Auto-Stack), nicht von „Alles nehmen" aus Kisten geholt, nicht sortiert und nicht
 /// vernichtet. Beim Aufheben des eigenen Grabsteins landet es wieder auf seinem Platz. Liegt dort schon etwas,
-/// wandert das auf einen freien Platz oder, wenn keiner frei ist, vor dich auf den Boden.
+/// wandert das auf einen freien Platz oder, wenn keiner frei ist, in den Grabstein.
 /// Craften und Bauen dürfen weiß fixierte Items verbrauchen.
 ///
 /// Rotes Schloss (Alt+Rechtsklick): wie weiß, zusätzlich verbrauchen Craften, Verbessern und Bauen das Item nie, auch
@@ -65,7 +65,7 @@ internal static class Plugin
 		ProtectFromTakeAll = Gc.Bind(Config, "2 - Item Lock - Rules", "ProtectFromTakeAll", true, "Fixierte Items in Kisten und Fahrzeugen bleiben bei 'Alles nehmen' liegen (Grabsteine ausgenommen).");
 		WhiteStacksTakeNew = Gc.Bind(Config, "2 - Item Lock - Rules", "WhiteStacksTakeNewItems", true, "Neue Items gleicher Art (Aufheben, Alles nehmen, Craften) dürfen in weiß fixierte Stapel. Aus = sie bekommen einen eigenen Stapel.");
 		RedStacksTakeNew = Gc.Bind(Config, "2 - Item Lock - Rules", "RedStacksTakeNewItems", false, "Neue Items gleicher Art dürfen in rot fixierte Stapel und sind dann ebenfalls gesperrt. Aus = sie bekommen einen eigenen Stapel.");
-		RestoreAfterDeath = Gc.Bind(Config, "2 - Item Lock - Rules", "RestoreAfterDeath", true, "Beim Leeren des eigenen Grabsteins kommen fixierte Items auf ihren alten Platz. Was dort liegt, wandert auf einen freien Platz oder auf den Boden.");
+		RestoreAfterDeath = Gc.Bind(Config, "2 - Item Lock - Rules", "RestoreAfterDeath", true, "Beim Leeren des eigenen Grabsteins kommen fixierte Items auf ihren alten Platz. Was dort liegt, wandert auf einen freien Platz oder in den Grabstein.");
 
 		VPlusFilter.Apply(harmony);
 	}
@@ -90,14 +90,34 @@ internal static class Plugin
 			return;
 		}
 		ZNetView nview = container.m_nview;
-		if (GcIds.InUse(nview) || !Gc.Own(nview))
+		if (nview == null || !nview.IsValid())
 		{
-			Gc.Center(GcLoc.Get("gcl_chest_busy"));
 			return;
 		}
+		// Review 27.10.2026: Die Sperre setzt der Besitzer der Kiste (ChestLockRpcPatch), statt dass wir den Besitz
+		// übernehmen. Mit ClaimOwnership schrieben wir unseren womöglich veralteten Stand; hat der bisherige Besitzer schon
+		// dieselbe DataRevision verschickt, verwirft der Server unsere Änderung und die Stände laufen auseinander. Über den
+		// Besitzer geht das auch, während jemand die Kiste offen hat.
 		bool locked = !nview.GetZDO().GetBool(GcKeys.ChestNoAuto);
-		nview.GetZDO().Set(GcKeys.ChestNoAuto, locked);
+		ChestLockRpcPatch.Send(nview, locked);
 		Gc.Center(GcLoc.Get(locked ? "gcl_chest_locked" : "gcl_chest_unlocked"));
+	}
+
+	/// <summary>Schloss nur im eigenen Inventar und in der offenen Kiste (auch der Ansicht verbundener Kisten), nicht in fremden Rastern wie den Sockeln eines EpicLoot-Items.</summary>
+	internal static bool Lockable(InventoryGui gui, InventoryGrid? grid)
+	{
+		Inventory? inventory = grid != null ? grid.GetInventory() : null;
+		if (inventory == null)
+		{
+			return false;
+		}
+		Player player = Player.m_localPlayer;
+		if (player != null && inventory == player.GetInventory())
+		{
+			return true;
+		}
+		Container container = gui.m_currentContainer;
+		return container != null && inventory == container.GetInventory();
 	}
 
 	/// <summary>Darf in diesen Stapel nichts Neues gelegt werden (Einstellungen WhiteStacksTakeNewItems / RedStacksTakeNewItems)?</summary>
@@ -145,13 +165,22 @@ internal static class Plugin
 	}
 }
 
-/// <summary>Alt + Linksklick auf ein Item: weißes Schloss setzen oder lösen, statt es aufzunehmen. Im Inventar und in jedem geöffneten Behälter.</summary>
+/// <summary>
+/// Alt + Linksklick auf ein Item: weißes Schloss setzen oder lösen, statt es aufzunehmen. Im Inventar und im geöffneten
+/// Behälter. Review 27.10.2026: läuft als letzter Prefix und schaltet nur, wenn kein anderer den Klick schon übernommen
+/// hat (__runOriginal, z. B. das Sockel-Fenster von EpicLoot), und nur in Spielerinventar und offener Kiste.
+/// </summary>
 [HarmonyPatch(typeof(InventoryGui), nameof(InventoryGui.OnSelectedItem))]
 internal static class SelectPatch
 {
-	private static bool Prefix(InventoryGui __instance, InventoryGrid grid, ItemDrop.ItemData item)
+	[HarmonyPriority(Priority.Last)]
+	private static bool Prefix(InventoryGui __instance, InventoryGrid grid, ItemDrop.ItemData item, bool __runOriginal)
 	{
-		if (!Plugin.ItemsOn || item == null || __instance.m_dragGo != null || !Input.GetKey(Plugin.ItemModifier.Value))
+		if (!__runOriginal)
+		{
+			return false; // ein anderer Prefix hat den Klick schon übernommen: kein Schloss schalten
+		}
+		if (!Plugin.ItemsOn || item == null || __instance.m_dragGo != null || !Input.GetKey(Plugin.ItemModifier.Value) || !Plugin.Lockable(__instance, grid))
 		{
 			return true; // beim Ziehen eines Items bleibt der Klick ein normales Ablegen
 		}
@@ -161,13 +190,18 @@ internal static class SelectPatch
 	}
 }
 
-/// <summary>Alt + Rechtsklick auf ein Item: rotes Schloss setzen oder lösen, statt das Item zu benutzen.</summary>
+/// <summary>Alt + Rechtsklick auf ein Item: rotes Schloss setzen oder lösen, statt das Item zu benutzen (Bedingungen wie beim Linksklick).</summary>
 [HarmonyPatch(typeof(InventoryGui), nameof(InventoryGui.OnRightClickItem))]
 internal static class RightClickPatch
 {
-	private static bool Prefix(InventoryGrid grid, ItemDrop.ItemData item)
+	[HarmonyPriority(Priority.Last)]
+	private static bool Prefix(InventoryGui __instance, InventoryGrid grid, ItemDrop.ItemData item, bool __runOriginal)
 	{
-		if (!Plugin.ItemsOn || item == null || !Input.GetKey(Plugin.ItemModifier.Value))
+		if (!__runOriginal)
+		{
+			return false;
+		}
+		if (!Plugin.ItemsOn || item == null || !Input.GetKey(Plugin.ItemModifier.Value) || !Plugin.Lockable(__instance, grid))
 		{
 			return true;
 		}
@@ -470,10 +504,11 @@ internal static class MoveAllPatch
 /// (Inventory.MoveInventoryToGrave). Vanilla legt beim Aufheben jedes Item zuerst dorthin zurück, aber nur auf einen
 /// freien Platz, und ValheimPlus (mergeWithExistingStacks) mischt Stapel vorher in vorhandene Stapel.
 /// Deshalb erledigt dieser Prefix das vor V+ und Vanilla: Was auf dem Platz eines fixierten Items liegt, rückt im
-/// Inventar auf einen freien Platz (gleiches Objekt, bleibt ausgerüstet). Ist keiner frei, fällt es vor dich auf den
-/// Boden; ein ausgerüstetes Item bleibt stattdessen liegen, und das fixierte Item läuft den normalen Weg. Danach liegt
-/// jedes fixierte Item auf seinem Platz. Was von den übrigen Grabstein-Items nicht mehr passt, bleibt wie in Vanilla
-/// im Grabstein.
+/// Inventar auf einen freien Platz (gleiches Objekt, bleibt ausgerüstet). Ist keiner frei, tauschen die beiden den Platz:
+/// Das verdrängte Item liegt danach im Grabstein (Review 27.10.2026: vorher fiel es zu Boden, und Valheim räumt
+/// Bodenitems u. U. nach einer Stunde weg, ItemDrop.cs:1405–1407). Ausgerüstete Items und Quest-Items bleiben im
+/// Inventar; dann läuft das fixierte Item den normalen Weg und bleibt, wenn nichts frei ist, im Grabstein. Was von den
+/// übrigen Grabstein-Items nicht mehr passt, bleibt wie in Vanilla im Grabstein.
 /// </summary>
 [HarmonyPatch(typeof(Inventory), nameof(Inventory.MoveAll))]
 internal static class GraveRestorePatch
@@ -482,7 +517,9 @@ internal static class GraveRestorePatch
 	{
 		public int Restored;
 		public int Moved;
-		public int Dropped;
+
+		/// <summary>Verdrängte Items, die in den Grabstein getauscht wurden (MoveAll versucht sie danach noch einmal).</summary>
+		public readonly List<ItemDrop.ItemData> Swapped = new();
 	}
 
 	[HarmonyPriority(Priority.First)]
@@ -509,6 +546,7 @@ internal static class GraveRestorePatch
 		foreach (ItemDrop.ItemData item in locked)
 		{
 			ItemDrop.ItemData? occupant = __instance.GetItemAt(item.m_gridPos.x, item.m_gridPos.y);
+			bool swap = false;
 			if (occupant != null)
 			{
 				Vector2i free = FreeSlot(__instance, reserved, __instance.TopFirst(occupant));
@@ -517,21 +555,26 @@ internal static class GraveRestorePatch
 					occupant.m_gridPos = free; // nur umsetzen: gleiches Objekt, Ausrüstung und Stapel bleiben unverändert
 					__state.Moved++;
 				}
-				else if (!player.IsItemEquiped(occupant))
+				else if (!player.IsItemEquiped(occupant) && !occupant.m_shared.m_questItem)
 				{
-					__instance.m_inventory.Remove(occupant);
-					Transform t = player.transform;
-					ItemDrop.DropItem(occupant, occupant.m_stack, t.position + t.forward * 0.8f + Vector3.up, t.rotation);
-					__state.Dropped++;
+					swap = true;
 				}
 				else
 				{
 					reserved.Remove(Key(item.m_gridPos));
-					continue; // ausgerüstet und kein Platz frei: das fixierte Item geht den normalen Weg
+					continue; // ausgerüstet oder Quest-Item und kein Platz frei: das fixierte Item geht den normalen Weg
 				}
 			}
 			// gleiches Objekt, gleicher Platz (m_gridPos aus dem Grabstein): Schloss und Item-Daten bleiben erhalten
 			fromInventory.m_inventory.Remove(item);
+			if (swap)
+			{
+				// Platz tauschen: Das verdrängte Item kommt in den Grabstein, auf genau den Platz, den das fixierte Item dort
+				// frei macht (gleiche Koordinaten, der Grabstein hat die Größe des Inventars, Inventory.MoveInventoryToGrave)
+				__instance.m_inventory.Remove(occupant!);
+				fromInventory.m_inventory.Add(occupant!);
+				__state.Swapped.Add(occupant!);
+			}
 			__instance.m_inventory.Add(item);
 			__state.Restored++;
 		}
@@ -540,16 +583,24 @@ internal static class GraveRestorePatch
 	}
 
 	[HarmonyPriority(Priority.Last)]
-	private static void Finalizer(State? __state)
+	private static void Finalizer(Inventory fromInventory, State? __state)
 	{
 		if (__state == null || __state.Restored == 0)
 		{
 			return;
 		}
 		Gc.TopLeft(GcLoc.Get("gcl_grave_moved", __state.Restored, __state.Moved));
-		if (__state.Dropped > 0)
+		int kept = 0;
+		foreach (ItemDrop.ItemData item in __state.Swapped)
 		{
-			Gc.Center(GcLoc.Get("gcl_grave_dropped", __state.Dropped));
+			if (fromInventory.m_inventory.Contains(item))
+			{
+				kept++; // MoveAll kann einen Teil noch auf vorhandene Stapel verteilt haben
+			}
+		}
+		if (kept > 0)
+		{
+			Gc.Center(GcLoc.Get("gcl_grave_kept", kept));
 		}
 	}
 
@@ -867,79 +918,118 @@ internal static class HoverPatch
 }
 
 /// <summary>
+/// Kistensperre (Alt+L) beim Besitzer der Kiste setzen, wie Rpcs.Assign im Gebäude-Menü (Review 27.10.2026). Nur ohne
+/// Besitzer übernimmt der Spieler die Kiste selbst; dann gibt es keinen fremden Stand, der verloren ginge.
+/// </summary>
+[HarmonyPatch(typeof(Container), nameof(Container.Awake))]
+internal static class ChestLockRpcPatch
+{
+	private const string Rpc = "GC_ChestNoAuto";
+
+	private static void Postfix(Container __instance)
+	{
+		ZNetView nview = __instance.m_nview;
+		if (nview == null || nview.GetZDO() == null || nview.m_functions.ContainsKey(Rpc.GetStableHashCode()))
+		{
+			return; // mehrere Behälter an einem ZNetView (m_rootObjectOverride): nur einmal registrieren, doppelt wirft
+		}
+		nview.Register<bool>(Rpc, (sender, locked) => Apply(nview, locked));
+	}
+
+	internal static void Send(ZNetView nview, bool locked)
+	{
+		if (!nview.GetZDO().HasOwner())
+		{
+			nview.ClaimOwnership();
+		}
+		nview.InvokeRPC(Rpc, locked); // an den Besitzer; sind wir das selbst, läuft es sofort
+	}
+
+	private static void Apply(ZNetView nview, bool locked)
+	{
+		if (nview != null && nview.IsValid() && nview.IsOwner())
+		{
+			nview.GetZDO().Set(GcKeys.ChestNoAuto, locked);
+		}
+	}
+}
+
+/// <summary>
 /// ValheimPlus, per Reflection und nur wenn V+ geladen ist:
 ///  * gesperrte Kisten aus allen Kistenlisten entfernen (Maschinen-Automatik, Craft from Chest, Auto-Stack),
 ///  * rot fixierte Items in Kisten weder zählen noch entnehmen (Craft from Chest, Schmelze, Ofen, Feuer, Fermenter).
 /// </summary>
 internal static class VPlusFilter
 {
+	/// <summary>
+	/// Review 27.10.2026: Jede Einhängung ist einzeln abgesichert (VppPatch) und bindet V+-Parameter über ihre Position.
+	/// Fehlt eine oder passt sie nicht, wirkt nur diese Stelle nicht; Awake und GcMod.PatchAll laufen weiter.
+	/// </summary>
 	internal static void Apply(Harmony harmony)
 	{
 		if (!Gc.VPlusLoaded)
 		{
 			return;
 		}
-		Type? assistant = AccessTools.TypeByName("ValheimPlus.InventoryAssistant");
-		if (assistant == null)
+		int total = 0;
+		int active = 0;
+		void Hook(Type? type, string name, Type[]? args, string? prefix = null, string? postfix = null, string? finalizer = null, int priority = Priority.Normal)
 		{
-			Plugin.Log.LogWarning("ValheimPlus gefunden, aber InventoryAssistant nicht. Kistensperre und rotes Schloss wirken nur ohne V+-Automatik.");
-			return;
+			total++;
+			if (type == null)
+			{
+				return; // die fehlende V+-Klasse steht schon im Log
+			}
+			if (VppPatch.Try(harmony, VppPatch.Find(type, name, args), type.Name + "." + name, Handler(prefix, priority), Handler(postfix, priority), Handler(finalizer, priority)))
+			{
+				active++;
+			}
 		}
-		int count = 0;
-		count += Patch(harmony, assistant, "GetNearbyChests", null, nameof(FilterChests));
-		count += Patch(harmony, assistant, "GetNearbyChestsForMachine", null, nameof(FilterChests));
-		count += Patch(harmony, assistant, "GetNearbyChestItemsByContainerList", null, nameof(FilterItems));
-		count += Patch(harmony, assistant, "GetNearbyChestItems", null, nameof(FilterItems));
-		// Nach dem Filter der Ein-/Ausgangskisten (StationStorage, normale Priorität): hat der die Entnahme abgelehnt, bleibt die Kiste unberührt
-		count += Patch(harmony, assistant, "RemoveItemFromChest", new[] { typeof(Container), typeof(ItemDrop.ItemData), typeof(int) }, nameof(RemoveByItem), true, Priority.Low);
-		count += Patch(harmony, assistant, "RemoveItemFromChest", new[] { typeof(Container), typeof(string), typeof(int) }, nameof(RemoveByName), true, Priority.Low);
-		count += Patch(harmony, assistant, "ChestContainsItem", new[] { typeof(Container), typeof(ItemDrop.ItemData) }, nameof(ContainsByItem));
-		count += Patch(harmony, assistant, "ChestContainsItem", new[] { typeof(Container), typeof(string) }, nameof(ContainsByName));
-		// Kochstelle holt Rohes aus Kisten: V+ prüft mit HaveItem, entnimmt und legt ein neues Item auf, auch wenn nichts entnommen wurde
-		Type? cooking = AccessTools.TypeByName("ValheimPlus.GameClasses.CookingStation_FindCookableItem_Transpiler");
-		if (cooking != null)
+		try
 		{
-			count += Patch(harmony, cooking, "PullCookableItemFromNearbyChests", null, nameof(ChestsEnter), true);
-			count += Patch(harmony, cooking, "PullCookableItemFromNearbyChests", null, nameof(ChestsLeave), finalizer: true);
+			Type? assistant = Class("ValheimPlus.InventoryAssistant");
+			Hook(assistant, "GetNearbyChests", null, postfix: nameof(FilterChests));
+			Hook(assistant, "GetNearbyChestsForMachine", null, postfix: nameof(FilterChests));
+			Hook(assistant, "GetNearbyChestItemsByContainerList", null, postfix: nameof(FilterItems));
+			Hook(assistant, "GetNearbyChestItems", null, postfix: nameof(FilterItems));
+			// Nach dem Filter der Ein-/Ausgangskisten (StationStorage, normale Priorität): hat der die Entnahme abgelehnt, bleibt die Kiste unberührt
+			Hook(assistant, "RemoveItemFromChest", new[] { typeof(Container), typeof(ItemDrop.ItemData), typeof(int) }, prefix: nameof(RemoveByItem), priority: Priority.Low);
+			Hook(assistant, "RemoveItemFromChest", new[] { typeof(Container), typeof(string), typeof(int) }, prefix: nameof(RemoveByName), priority: Priority.Low);
+			Hook(assistant, "ChestContainsItem", new[] { typeof(Container), typeof(ItemDrop.ItemData) }, postfix: nameof(ContainsByItem));
+			Hook(assistant, "ChestContainsItem", new[] { typeof(Container), typeof(string) }, postfix: nameof(ContainsByName));
+			// Kochstelle holt Rohes aus Kisten: V+ prüft mit HaveItem, entnimmt und legt ein neues Item auf, auch wenn nichts
+			// entnommen wurde. Prefix und Finalizer in einem Schritt: gelänge nur der Prefix, bliebe der Zähler hängen.
+			Hook(Class("ValheimPlus.GameClasses.CookingStation_FindCookableItem_Transpiler"), "PullCookableItemFromNearbyChests", null, prefix: nameof(ChestsEnter), finalizer: nameof(ChestsLeave));
+			Hook(Class("ValheimPlus.GameClasses.Inventory_MoveAll_Patch"), "Prefix", null, prefix: nameof(MergePrefix));
+			// Fermenter füllt aus Kisten nach: Vanilla FindCookableItem prüft mit HaveItem
+			Hook(Class("ValheimPlus.GameClasses.Fermenter_SlowUpdate_Transpiler"), "AddItemFromNearbyChests", null, prefix: nameof(ChestsEnter), finalizer: nameof(ChestsLeave));
 		}
-		Type? moveAll = AccessTools.TypeByName("ValheimPlus.GameClasses.Inventory_MoveAll_Patch");
-		if (moveAll != null)
+		catch (Exception e)
 		{
-			count += Patch(harmony, moveAll, "Prefix", null, nameof(MergePrefix), true);
+			Plugin.Log.LogWarning($"ValheimPlus: Einhängen abgebrochen: {e.Message}");
 		}
-		// Fermenter füllt aus Kisten nach: Vanilla FindCookableItem prüft mit HaveItem
-		Type? fermenter = AccessTools.TypeByName("ValheimPlus.GameClasses.Fermenter_SlowUpdate_Transpiler");
-		if (fermenter != null)
+		string text = $"ValheimPlus erkannt: Kistensperre und rotes Schloss, {active} von {total} V+-Einhängungen aktiv.";
+		if (active == total)
 		{
-			count += Patch(harmony, fermenter, "AddItemFromNearbyChests", null, nameof(ChestsEnter), true);
-			count += Patch(harmony, fermenter, "AddItemFromNearbyChests", null, nameof(ChestsLeave), finalizer: true);
-		}
-		Plugin.Log.LogInfo($"ValheimPlus erkannt: Kistensperre und rotes Schloss an {count} von 13 Stellen eingehängt.");
-	}
-
-	private static int Patch(Harmony harmony, Type type, string name, Type[]? args, string handler, bool prefix = false, int priority = Priority.Normal, bool finalizer = false)
-	{
-		MethodInfo? method = args == null ? AccessTools.Method(type, name) : AccessTools.Method(type, name, args);
-		if (method == null)
-		{
-			Plugin.Log.LogWarning($"ValheimPlus: {name} nicht gefunden.");
-			return 0;
-		}
-		HarmonyMethod patch = new(typeof(VPlusFilter), handler) { priority = priority };
-		if (finalizer)
-		{
-			harmony.Patch(method, finalizer: patch);
-		}
-		else if (prefix)
-		{
-			harmony.Patch(method, prefix: patch);
+			Plugin.Log.LogInfo(text);
 		}
 		else
 		{
-			harmony.Patch(method, postfix: patch);
+			Plugin.Log.LogWarning(text + " An den fehlenden Stellen (Warnungen oben) wirken sie bei der V+-Automatik nicht.");
 		}
-		return 1;
 	}
+
+	private static Type? Class(string name)
+	{
+		Type? type = AccessTools.TypeByName(name);
+		if (type == null)
+		{
+			Plugin.Log.LogWarning($"ValheimPlus: {name} nicht gefunden.");
+		}
+		return type;
+	}
+
+	private static HarmonyMethod? Handler(string? name, int priority) => name == null ? null : new HarmonyMethod(typeof(VPlusFilter), name) { priority = priority };
 
 	/// <summary>
 	/// Ersetzt V+ Inventory_MoveAll_Patch.Prefix (Stapel beim „Alles nehmen" zusammenführen), solange fixierte Stapel
@@ -1022,9 +1112,10 @@ internal static class VPlusFilter
 		}
 	}
 
-	private static bool RemoveByItem(Container chest, ItemDrop.ItemData needle, int amount, ref int __result, bool __runOriginal) => !__runOriginal ? false : Remove(chest, needle?.m_shared.m_name, amount, ref __result);
+	// V+ RemoveItemFromChest(Container chest, ItemData/string needle, int amount): Parameter per Position (Review 27.10.2026)
+	private static bool RemoveByItem(Container __0, ItemDrop.ItemData __1, int __2, ref int __result, bool __runOriginal) => !__runOriginal ? false : Remove(__0, __1?.m_shared.m_name, __2, ref __result);
 
-	private static bool RemoveByName(Container chest, string needle, int amount, ref int __result, bool __runOriginal) => !__runOriginal ? false : Remove(chest, needle, amount, ref __result);
+	private static bool RemoveByName(Container __0, string __1, int __2, ref int __result, bool __runOriginal) => !__runOriginal ? false : Remove(__0, __1, __2, ref __result);
 
 	/// <summary>Wie V+ RemoveItemFromChest, aber rote Items bleiben. Nur wenn die Kiste wirklich ein rotes Item mit dem Namen hat, sonst läuft V+ selbst.</summary>
 	private static bool Remove(Container chest, string? name, int amount, ref int __result)
@@ -1060,24 +1151,126 @@ internal static class VPlusFilter
 		return false;
 	}
 
-	private static void ContainsByItem(Container chest, ItemDrop.ItemData needle, ref bool __result)
+	// V+ ChestContainsItem(Container chest, ItemData/string needle): Parameter per Position
+	private static void ContainsByItem(Container __0, ItemDrop.ItemData __1, ref bool __result)
 	{
-		if (__result && needle != null)
+		if (__result && __1 != null)
 		{
-			__result = HasFree(chest, needle.m_shared.m_name);
+			__result = HasFree(__0, __1.m_shared.m_name);
 		}
 	}
 
-	private static void ContainsByName(Container chest, string needle, ref bool __result)
+	private static void ContainsByName(Container __0, string __1, ref bool __result)
 	{
 		if (__result)
 		{
-			__result = HasFree(chest, needle);
+			__result = HasFree(__0, __1);
 		}
 	}
 
 	private static bool HasFree(Container chest, string name)
 	{
 		return !Plugin.ItemsOn || chest == null || chest.GetInventory() == null || chest.GetInventory().m_inventory.Exists(i => i.m_shared.m_name == name && !Gc.IsHardLocked(i));
+	}
+}
+
+/// <summary>
+/// EpicLoot (Gorduan, 30.10.2026: „Schlösser schützen Items in allen EpicLoot-Fenstern“): Jedes Fenster des Verzaubertischs, das
+/// ein Item verbraucht oder ihm etwas nimmt (Opfern, Entzaubern, Identifizieren, Rune herauslösen, Runen und Set-Runen als
+/// Quelle), fragt EpicLoot.Compatibility.ItemFavorites.IsProtected (gedacht für die Mod Item Favorite Framework). Items mit
+/// Schloss (weiß oder rot) gelten dort jetzt als geschützt und erscheinen nicht zur Auswahl. Verzaubern und Verbessern eines
+/// Items mit Schloss bleibt erlaubt (es wird verändert, nicht verbraucht). Bezahlen wie beim Craften: Weiße Schlösser
+/// dürfen Kosten tragen, rote nie (InventoryManagement.CountItem und RemoveItem im roten Kontext).
+/// Ohne EpicLoot oder mit einer Fassung ohne diese Stellen geschieht nichts. Angemeldet in Start, wenn alle Mods geladen sind.
+/// </summary>
+internal static class EpicLootGuard
+{
+	private static bool patched;
+
+	internal static void Patch(Harmony harmony)
+	{
+		if (patched)
+		{
+			return;
+		}
+		patched = true;
+		try
+		{
+			Type? favorites = AccessTools.TypeByName("EpicLoot.Compatibility.ItemFavorites");
+			MethodInfo? isProtected = favorites != null ? AccessTools.Method(favorites, "IsProtected", new[] { typeof(ItemDrop.ItemData) }) : null;
+			if (isProtected == null)
+			{
+				return;
+			}
+			harmony.Patch(isProtected, postfix: new HarmonyMethod(typeof(EpicLootGuard), nameof(Protected)));
+			Type? inventory = AccessTools.TypeByName("EpicLoot_UnityLib.InventoryManagement");
+			int costs = 0;
+			foreach (MethodInfo? method in new[]
+			{
+				inventory != null ? AccessTools.Method(inventory, "CountItem", new[] { typeof(string) }) : null,
+				inventory != null ? AccessTools.Method(inventory, "RemoveItem", new[] { typeof(string), typeof(int) }) : null,
+			})
+			{
+				if (method != null)
+				{
+					harmony.Patch(method, prefix: new HarmonyMethod(typeof(EpicLootGuard), nameof(CostPrefix)), finalizer: new HarmonyMethod(typeof(EpicLootGuard), nameof(CostFinalizer)));
+					costs++;
+				}
+			}
+			VppPlugin.Log.LogInfo($"Schlösser: Items mit Schloss sind in den EpicLoot-Fenstern geschützt{(costs == 2 ? ", rote bezahlen nie" : "")}.");
+		}
+		catch (Exception e)
+		{
+			VppPlugin.Log.LogWarning($"Schlösser: EpicLoot-Schutz nicht angemeldet: {e.Message}");
+		}
+	}
+
+	private static void Protected(ItemDrop.ItemData item, ref bool __result)
+	{
+		if (!__result && Plugin.ItemsOn && Gc.IsLocked(item))
+		{
+			__result = true;
+		}
+	}
+
+	private static void CostPrefix(out bool __state) => __state = Plugin.ItemsOn && RedContext.Enter(ref GcHooks.RedCraft);
+
+	private static void CostFinalizer(bool __state) => RedContext.Exit(ref GcHooks.RedCraft, __state);
+}
+
+/// <summary>
+/// EpicLoot 0.15.2 (Gorduan, 27.10.2026: „alle aktuellen Tools für das aktuelle EpicLoot umsetzen“): Items mit Schloss (weiß oder
+/// rot) lassen sich am Verzaubertisch nicht opfern (API.RegisterSacrificeFilter). Ohne EpicLoot oder mit älterem EpicLoot
+/// geschieht nichts. Angemeldet in Start, wenn alle Mods geladen sind (EpicLoot ist keine feste Abhängigkeit).
+/// </summary>
+internal static class SacrificeGuard
+{
+	private static bool registered;
+
+	internal static void Register()
+	{
+		if (registered)
+		{
+			return;
+		}
+		registered = true;
+		try
+		{
+			Type? api = AccessTools.TypeByName("EpicLoot.API");
+			MethodInfo? add = api != null ? AccessTools.Method(api, "RegisterSacrificeFilter", new[] { typeof(string), typeof(Func<ItemDrop.ItemData, bool>) }) : null;
+			if (add == null)
+			{
+				return;
+			}
+			Func<ItemDrop.ItemData, bool> allowed = item => !Plugin.ItemsOn || !Gc.IsLocked(item);
+			if (add.Invoke(null, new object[] { "gorduan.gc.schloesser", allowed }) is true)
+			{
+				VppPlugin.Log.LogInfo("Schlösser: Items mit Schloss lassen sich am EpicLoot-Verzaubertisch nicht opfern.");
+			}
+		}
+		catch (Exception e)
+		{
+			VppPlugin.Log.LogWarning($"Schlösser: EpicLoot-Opferschutz nicht angemeldet: {e.Message}");
+		}
 	}
 }

@@ -17,6 +17,7 @@
     <Company>Gorduan</Company>
     <GamePath Condition="'$(GamePath)' == ''">C:\Program Files (x86)\Steam\steamapps\common\Valheim</GamePath>
     <JotunnDll Condition="'$(JotunnDll)' == ''">$(GamePath)\BepInEx\plugins\ValheimModding-Jotunn\Jotunn.dll</JotunnDll>
+    <DeepTipDll Condition="'$(DeepTipDll)' == ''">$(GamePath)\BepInEx\plugins\Gorduan-DeepTip\GC_Valheim_DeepTip.dll</DeepTipDll>
     <GcModsRoot>$(MSBuildThisFileDirectory)</GcModsRoot>
     <GcPackageOut Condition="'$(GcPackageOut)' == '' And Exists('$(MSBuildThisFileDirectory)..\build-output')">$(MSBuildThisFileDirectory)..\build-output\GCMods</GcPackageOut>
     <GcPackageOut Condition="'$(GcPackageOut)' == ''">$(MSBuildThisFileDirectory)build-output\GCMods</GcPackageOut>
@@ -68,5 +69,7 @@
   <ItemGroup>
     <!-- Texte einer Mod (Sprachen nach Dateiname, z. B. texte.German.yml); der Kern liest sie beim Anmelden der Mod -->
     <EmbeddedResource Include="translations\*.yml" />
+    <!-- DeepTip-Glossar einer Mod (deeptip\de.json, deeptip\en.json); der Kern meldet es beim Anmelden der Mod bei DeepTip an -->
+    <EmbeddedResource Include="deeptip\*.json" />
   </ItemGroup>
 </Project>

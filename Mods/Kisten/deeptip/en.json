@@ -1,0 +1,49 @@
+{
+  "$locale": "en",
+  "gc.kisten": {
+    "title": "Linked chests and station menu",
+    "short": "Linked chests show their contents together; the building menu shows smelters and more and picks chests for ValheimPlus.",
+    "body": "The mod adds three features:\n- [[gc.kisten.linked]]: several chests as one big storage\n- [[gc.kisten.stationmenu]]: see, take back and fill the contents of smelters and more\n- [[gc.kisten.stationchests]] for ValheimPlus, plus the [[gc.kisten.table|enchanting table from chests]]\n\nIt belongs to the **ValheimPlusPlus** package ([[gc.kern.stufe|level]] 3 “Vanilla+”). All three features are [[gc.serverrules|server rules]] and need the mod on the server too, which is always the case in your own world; if the server has the mod, all players need it.",
+    "see": ["gc.kisten.mainchest", "gc.kisten.inputchests", "gc.kisten.stationchests_table"]
+  },
+  "gc.kisten.linked": {
+    "title": "Linked chests",
+    "short": "Alt+K links chests to a main chest; open one of them and you see the contents of all.",
+    "body": "Look at a chest and press Alt+K (adjustable): it becomes the [[gc.kisten.mainchest|main chest]]. Then press the same key on every chest that should join; pressing it on a linked chest again removes that chest. When you open a chest of the group, the window shows the slots of all chests one below the other, and you can take, store, sort and [[gc.schloesser.itemlock|lock]] anywhere.\n\nEvery chest keeps its own items, even if the mod is ever missing; a chest someone else has open is missing from the view. Linked chests are a [[gc.serverrules|server rule]].",
+    "aliases": ["Linked chests", "linked chest", "Link chests"]
+  },
+  "gc.kisten.mainchest": {
+    "title": "Main chest",
+    "short": "The chest other chests are attached to; its slots come first in the shared view.",
+    "body": "Every group of [[gc.kisten.linked|linked chests]] has exactly one main chest, and a main chest cannot itself be attached to another. Only built chests with the same privacy (public or private) that you have access to, inside the same wards and at most {gc_kisten_linked_distance} from the main chest, can be linked.\n\nHold Alt and look at a chest to light up its group: the main chest orange, the others green. The hover text names the number of linked chests.",
+    "aliases": ["Main chest"]
+  },
+  "gc.kisten.stationmenu": {
+    "title": "Building menu",
+    "short": "Shift+E at smelters and more: see the contents, take back ore and fuel, add everything.",
+    "body": "Use a production building such as a smelter, blast furnace, charcoal kiln, windmill, spinning wheel or eitr refinery with Shift+E: the menu shows the queue and the fuel, you take out raw materials, fuel or products waiting there, and “Add all” fills it from your inventory. At beehives, bird nests and sap extractors it shows the level and harvests; E alone works as usual everywhere.\n\nWith ValheimPlus you also choose the [[gc.kisten.stationchests|input and output chests]] here, and at the EpicLoot enchanting table the chests for its [[gc.kisten.table|material]]. The menu is a [[gc.serverrules|server rule]].",
+    "aliases": ["Building menu", "Contents and chests"]
+  },
+  "gc.kisten.stationchests": {
+    "title": "Input and output chests",
+    "short": "Chests per building for ValheimPlus automation: where it is filled from and where its yield goes.",
+    "body": "In the [[gc.kisten.stationmenu|building menu]] you choose [[gc.kisten.inputchests|input chests]] per raw material and for the fuel of smelters and more, plus output chests for the products; beehives, bird nests and sap extractors only have output chests. Without an assignment ValheimPlus uses every chest in range as before.\n\nIf you like, assigned chests glow while the menu is open: inputs green, outputs red, both blue. The feature needs ValheimPlus and is a [[gc.serverrules|server rule]]; with it the EpicLoot [[gc.kisten.table|enchanting table from chests]] can pay too."
+  },
+  "gc.kisten.inputchests": {
+    "title": "Input chests",
+    "short": "Chests a building or the enchanting table takes its material from, instead of all chests around.",
+    "body": "If a raw material or the fuel of a building has input chests, the ValheimPlus automation takes it only from those; whatever has no assignment still comes from every chest in range. The EpicLoot enchanting table has one set of input chests for all [[gc.kisten.table|material]].\n\nIn the [[gc.kisten.stationmenu|building menu]] click “Choose” and then the chest; a right click cancels. The chest must be public, inside the same wards as the building and at most {gc_kisten_stationchests_distance} away; a [[gc.kisten.linked|linked chest]] brings its whole group. Chests [[gc.schloesser.chestlock|locked]] with Alt+L never count.",
+    "aliases": ["Input chests", "input chest"]
+  },
+  "gc.kisten.table": {
+    "title": "Enchanting table from chests",
+    "short": "The EpicLoot enchanting table pays costs from your inventory first, then from chests.",
+    "body": "If your inventory lacks material, coins or runes at the EpicLoot enchanting table, the table pays the rest from chests. Without an assignment it uses, like ValheimPlus crafting (Craft from Chest), every chest within its range and by its settings; if Craft from Chest is off, it stays with your inventory. If you choose [[gc.kisten.inputchests|input chests]] with Shift+E at the table, it pays only from those, even with Craft from Chest off.\n\nChests [[gc.schloesser.chestlock|locked]] with Alt+L and [[gc.schloesser.red|red-locked]] items never pay. Items in chests do not appear in the lists for sacrificing or enchanting; they only pay costs.",
+    "aliases": ["Material for the enchanting table"]
+  },
+  "gc.kisten.stationchests_table": {
+    "title": "EpicLoot enchanting table from chests",
+    "short": "Server rule: the EpicLoot enchanting table may also pay costs from chests.",
+    "body": "Currently {gc_kisten_stationchests_table}. How it works is described under [[gc.kisten.table]]. It needs EpicLoot and ValheimPlus, the [[gc.kisten.stationchests|input and output chests]] switched on and the mod on the server too; the setting is a [[gc.serverrules|server rule]]."
+  }
+}

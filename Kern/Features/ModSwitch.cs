@@ -495,7 +495,10 @@ internal static class ModSwitch
 				return;
 			}
 			string oldList = Path.Combine(old, "disabled.txt");
-			if (File.Exists(oldList) && !File.Exists(ListFile))
+			// nur eine Liste, die Mod Menu zuletzt noch benutzt hat (Review 27.10.2026: ein längst entfernter Mod Menu hinterließ
+			// seinen Ordner; die alte Liste schaltete beim ersten Öffnen von GC Option Mods wieder aus)
+			bool recent = File.Exists(oldList) && DateTime.Now - File.GetLastWriteTime(oldList) < TimeSpan.FromDays(30);
+			if (recent && !File.Exists(ListFile))
 			{
 				Directory.CreateDirectory(Path.GetDirectoryName(ListFile)!);
 				File.Copy(oldList, ListFile);

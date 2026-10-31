@@ -20,6 +20,7 @@ namespace GC.Shared;
 /// </summary>
 [BepInPlugin(GcKern.Guid, GcKern.Name, GcKern.Version)]
 [BepInDependency(Jotunn.Main.ModGuid)]
+[BepInDependency(DeepTip.Api.Guid)] // seit 1.9.0 (Gorduan, 30.10.2026): Erklärfenster für alle GC-Mods, siehe GcDeepTip
 [BepInIncompatibility("gorduan.gc_server")]
 [BepInIncompatibility("gorduan.gc_client")]
 [BepInIncompatibility("gorduan.valheimplusplus")]
@@ -57,14 +58,27 @@ public class KernPlugin : BaseUnityPlugin
 			"Taste für das Menü GC Option, im Hauptmenü und im Spiel (nicht im Chat oder in der Konsole). Leer = nur über den Knopf.");
 		Module.TakeOverOldSettings();
 
-		Harmony harmony = new(GcKern.Guid);
-		harmony.PatchAll(typeof(KernPlugin).Assembly);
-
+		// Menü vor den Patches (Review 27.10.2026): Bräche das Patchen ab, bliebe Menu null und jede GC-Mod würfe in MenuGroup
 		Menu = new GcMenu(Log, GcMenu.UiText(""));
+		Harmony harmony = new(GcKern.Guid);
+		foreach (Type type in AccessTools.GetTypesFromAssembly(typeof(KernPlugin).Assembly))
+		{
+			try
+			{
+				harmony.CreateClassProcessor(type).Patch(); // je Klasse: ein geändertes Ziel schaltet nur diesen Teil ab
+			}
+			catch (Exception e)
+			{
+				Log.LogError($"Patch {type.FullName} nicht eingespielt, diese Funktion fehlt: {e}");
+			}
+		}
+
 		Module.MenuGroup(KernText)
 			.Main("stufe", GcKern.StufeSetting, step: 1, note: StufeNote)
 			.Main("bossscale", Kern.Progression.BossScaling.Automatic, note: Kern.Progression.BossScaling.Note)
-			.Sub("bossscale_percent", Kern.Progression.BossScaling.PercentPerBoss, 1, " %")
+			// Gorduan stellte am 27.10.2026 0 % ein, die Automatik galt aber weiter: solange sie an ist, ausgegraut
+			.Sub("bossscale_percent", Kern.Progression.BossScaling.PercentPerBoss, 1, " %", locked: () => Kern.Progression.BossScaling.Automatic.Value,
+				lockedText: () => GcLoc.Get("gck_bossscale_auto_locked"))
 			.Main("modcheck", Kern.ModCheck.Plugin.Enabled, () => Kern.ModCheck.Plugin.Blocked, "GC_ModCheck")
 			.Sub("modcheck_failure", Kern.ModCheck.Plugin.ShowOnFailure)
 			.Sub("modcheck_join", Kern.ModCheck.Plugin.ShowOnJoinIfMissing)

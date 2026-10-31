@@ -225,3 +225,17 @@ Bei harter Abhängigkeit (`GcBraucht`) im selben Paket darf eine Mod die andere 
 - **Hover-Texte:** Valheim nimmt die erste Hover-Komponente, eine zweite daneben wird ignoriert.
 - **Overlap-Abfragen** immer mit Maske und `QueryTriggerInteraction.Ignore`.
 - **Shell-Werkzeuge:** Backslash-Pfade nie in Python-Strings eines Bash-Heredocs (`\b`, `\t` werden Steuerzeichen). Skripte als Datei anlegen.
+- **Dedizierter Server:** Er besitzt dauerhaft die aktiven Zonen um (0,0,0), meist das Startgebiet. Besitzer-Logik (Verwandlungen, Aufräumen, Boni) muss deshalb auch ohne Grafik laufen; nur Effekte bleiben bei den Spielern (Review 27.10.2026).
+- **Flags an fremden Objekten** (Kisten, Tiere) per Besitzer-RPC setzen, nicht per `ClaimOwnership` und sofortigem Schreiben: Zwei Stände mit gleicher DataRevision verwirft Valheim, eine Änderung ginge verloren.
+- **`Container`:** vor jeder Änderung als Besitzer `Load()` aufrufen. `CheckForChanges` lädt nur einmal je Sekunde, sonst überschreibt eine alte lokale Kopie die neueren ZDO-Daten.
+- **`ItemDrop.SetStack`** kappt bei `m_maxStackSize`; **`Inventory.AddItem`** fügt teils hinzu und liefert trotzdem false. Immer vorher und nachher zählen und nur abziehen, was angekommen ist.
+- **Umschalt-RPCs** wie `UseDoor` schalten beim Besitzer um: nie wiederholt senden, bis sich die DataRevision geändert hat.
+- **Postfix auf `Player.Interact`** läuft auch, wenn Valheim wegen des 0,2-s-Takts abbricht (`m_lastHoverInteractTime`).
+- **Esc in eigenen Fenstern** öffnet im selben Bild Valheims Pause-Menü (`Menu.Update`), wenn man es nicht abfängt.
+- **Teleport** immer wie Valheim: `m_maxAirAltitude` auf die neue Höhe setzen, sonst zählt der Abstieg als Sturz. Schutzbereiche (`PrivateArea.CheckAccess`) am Ziel prüfen.
+- **Lokale Kopien von Netz-Prefabs** (Effekte nur für den eigenen Bildschirm) wie Valheims Bauvorschau anlegen: `ZNetView.m_forceDisableInit = true` in try/finally. Sonst wirft `ZSyncTransform` und legt die MonoUpdaters lahm.
+- **Rezepte mit `m_requireOnlyOneIngredient`** verbrauchen nur eine der Zutaten; wer Kosten erstattet, darf nicht alle zurückgeben.
+- **Patches:** `GcMod.PatchAll` spielt jede Klasse für sich ein; ein geändertes Ziel schaltet nur diesen Patch ab (Log „Patch … nicht eingespielt“). Halbfertige Dateien trotzdem aus dem Bau halten (`<Compile Remove>`): Jede Klasse mit `[HarmonyPatch` wird eingespielt, auch wenn ihr Init noch fehlt.
+- **ValheimPlus-Einhängungen** über `VppPatch` mit Positionsparametern (`__0`, `__1` …) statt Parameternamen, jede für sich abgesichert und im Log gezählt („x von y aktiv“).
+- **EpicLoot 0.15.2:** nur über `EpicLoot.API` und Reflection (weiche Abhängigkeit). Tooltips baut EpicLoot selbst: eigene Zeilen über `API.AddTooltipEditor` (Liste „Extra“, Anker z. B. „AfterStats“), nie `API.SetTooltipOverride`. `<color=orange>` und `<color=yellow>` färbt EpicLoot in Item-Tooltips hellblau.
+- **Zeilenenden:** Die Shell zeigt CRLF unzuverlässig an. Vor dem Speichern mit Python gegen `git show HEAD:<Datei>` vergleichen und die Endung des Git-Stands behalten.

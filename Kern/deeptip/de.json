@@ -1,0 +1,65 @@
+{
+  "$locale": "de",
+  "gc.about": {
+    "title": "GC-Mods",
+    "short": "Die Mods der Gorduan Community: drei Pakete, jede Funktion eine eigene Mod, alles einstellbar im Menü GC Option.",
+    "body": "Die GC-Mods sind die Valheim-Mods der Gorduan Community. Es gibt sie in drei Paketen: **GC Server**, **GC Client** und **ValheimPlusPlus**. Jede Funktion darin ist eine eigene kleine Mod mit einer [[gc.kern.stufe|Stufe]] von Sehr Vanilla bis GC; jede lässt sich einzeln [[gc.modswitch|ausschalten]], und alle brauchen den [[gc.kern]].\n\nEingestellt wird alles im Menü [[gc.option]]. Die Mods sind kostenlos und stehen unter der MIT-Lizenz: Jeder darf sie nutzen, ändern und neu hochladen.",
+    "aliases": ["GC-Mods", "GC-Mod", "Gorduan Community"],
+    "see": ["gc.option", "gc.kern"]
+  },
+  "gc.option": {
+    "title": "GC Option",
+    "short": "Das gemeinsame Einstellungsmenü aller GC-Mods, mit einem Knopf im Pause-Menü und im Hauptmenü.",
+    "body": "Den Knopf „GC Option“ findest du im Pause-Menü und im Hauptmenü direkt unter „Einstellungen“; auf Wunsch öffnet auch eine [[gc.kern.menukey|eigene Taste]] das Menü. Der Reiter **Einstellungen** zeigt die GC-Mods nach [[gc.kern.stufe|Stufen]] geordnet, darunter die Einstellungen aller übrigen Mods, und das Suchfeld filtert nach Name, Beschreibung und Mod. In den Reitern **Mods** und **Profile** [[gc.modswitch|schaltest du Mods aus]].\n\nOhne Haken bei „Server-Regeln anzeigen“ siehst du nur deine eigenen Einstellungen, mit Haken auch die [[gc.serverrules|Server-Regeln]]. Änderungen gelten sofort, manche Mods übernehmen sie erst nach einem Neustart; alle Werte stehen auch in `BepInEx/config`.",
+    "aliases": ["GC Option"],
+    "see": ["gc.serverrules", "gc.modswitch"]
+  },
+  "gc.serverrules": {
+    "title": "Server-Regeln",
+    "short": "Einstellungen, die der Server für alle vorgibt: Es gilt immer sein Wert, und ändern dürfen sie nur Admins.",
+    "body": "Eine Server-Regel gilt für alle Spieler gleich. Der Server schickt seinen Wert an jeden, der sich verbindet, und solange du dort spielst, ersetzt er den Wert aus deiner eigenen Config. Im Menü [[gc.option]] erscheinen Server-Regeln erst mit dem Haken bei „Server-Regeln anzeigen“; ändern darf sie in einer Welt nur ein Admin des Servers, und nur, wenn der Server die Mod hat.\n\nIn einer Welt, die du selbst hostest, darfst du sie ändern. Im Hauptmenü änderst du deine eigene Config, die gilt, sobald du selbst eine Welt hostest.",
+    "aliases": ["Server-Regeln", "Server-Regel"],
+    "see": ["gc.option"]
+  },
+  "gc.modswitch": {
+    "title": "Mods ausschalten",
+    "short": "Jede Mod lässt sich einzeln abschalten: im Reiter „Mods“ von GC Option, auf einem Server über die Datei aus.txt.",
+    "body": "Im Reiter **Mods** des Menüs [[gc.option]] hat jede installierte Mod einen Haken; nimmst du ihn weg, lädt sie nach dem nächsten Neustart über r2modman nicht mehr. Mods, die eine ausgeschaltete Mod brauchen, gehen mit aus, und was das Menü selbst braucht, etwa der [[gc.kern]], bleibt immer an.\n\nDie Liste steht in `BepInEx/config/GC_Kern/aus.txt`, eine GUID je Zeile; auf einem Server trägst du die Mods dort von Hand ein. Das Schalten braucht den Vorlader GC_ModSchalter in `BepInEx/patchers`, ohne ihn sind die Haken gesperrt. Unter **Profile** merkst du dir, welche Mods aus sind, und lädst solche Zusammenstellungen später wieder.",
+    "aliases": ["Mod-Profil", "Mod-Profile"],
+    "see": ["gc.option"]
+  },
+  "gc.kern": {
+    "title": "GC-Kern",
+    "short": "Die gemeinsame Grundlage aller GC-Mods: Menü GC Option, Texte, Stufe des Servers und Mod-Abgleich.",
+    "body": "Der GC-Kern (GC_Kern) liegt jedem Paket bei, und jede [[gc.about|GC-Mod]] braucht ihn; er selbst braucht Jötunn und [[deeptip.about|DeepTip]]. Er bringt das Menü [[gc.option]], die Texte aller GC-Mods auf Deutsch und Englisch und das [[gc.modswitch|Ausschalten einzelner Mods]], und er meldet die Erklärungen jeder Mod bei DeepTip an.\n\nSeine eigenen Einstellungen sind die [[gc.kern.stufe|Stufe für Spieler-Mods]], der [[gc.kern.bossscale|Boss-Fortschritt]], der [[gc.kern.modcheck|Mod-Abgleich]] und die [[gc.kern.menukey|Taste für GC Option]]. Du findest sie im Abschnitt „GC-Kern“ unter den Stufen.",
+    "aliases": ["GC-Kern", "GC_Kern"],
+    "see": ["gc.about"]
+  },
+  "gc.kern.stufe": {
+    "title": "Stufe",
+    "short": "Jede GC-Mod hat eine Stufe von 1 Sehr Vanilla bis 5 GC; der Server legt fest, bis zu welcher Stufe Spieler-Mods wirken.",
+    "body": "Die Stufen heißen 1 **Sehr Vanilla**, 2 **Vanilla**, 3 **Vanilla+**, 4 **GC leicht** und 5 **GC**; sie sagen, wie weit eine Mod vom normalen Spiel abweicht, und ordnen das Menü [[gc.option]].\n\nGC-Mods, die beim Spieler laufen, schalten sich auf einem Server ab, wenn ihre Stufe über seiner Grenze liegt; in ihrer Zeile steht dann „Auf diesem Server aus“. Die Grenze „Stufe für Spieler-Mods“ ist eine [[gc.serverrules|Server-Regel]], eingestellt ist {gc_kern_stufe}; 0 heißt automatisch, also die höchste Stufe der GC-Mods auf dem Server. Stufe 1 wirkt immer, ebenso jede Mod mit Server-Teil, die der Server selbst hat, und ein Server ohne [[gc.kern|GC-Kern]] setzt keine Grenze. Die Zeile im Menü zeigt, welche Stufe gerade gilt.",
+    "aliases": ["Stufe für Spieler-Mods", "Sehr Vanilla", "GC leicht"],
+    "see": ["gc.serverrules"]
+  },
+  "gc.kern.bossscale": {
+    "title": "Boss-Fortschritt",
+    "short": "Je besiegtem Hauptboss werden Gegner stärker; wie viel, richtet sich nach den laufenden Mods oder nach einem festen Wert.",
+    "body": "Für jeden der acht Hauptbosse von Eikthyr bis Kall Fimbulbringer, den du besiegt hast, werden Gegner und Bosse um einen Prozentsatz stärker, addiert: Sie treffen dich und deine zahmen Tiere härter und nehmen weniger Schaden, als hätten sie mehr Leben. Es zählt dein eigener Fortschritt, mit World Advancement Progression oder Guilds_Progress deren Stand, sonst der der Welt; das gilt in deiner eigenen Welt und auf Servern mit [[gc.kern|GC-Kern]].\n\nDie Automatik ist {gc_kern_bossscale}: Sie nimmt den höchsten Ausgleich der laufenden GC-Mods, mit EpicLoot mindestens 10 %, ohne erleichternde Mods 0 % wie in Valheim. Ist sie aus, gilt ein fester Wert, gerade {gc_kern_bossscale_percent} je Boss; solange sie an ist, bleibt dieser Wert gesperrt. Beides ist eine [[gc.serverrules|Server-Regel]], und die Zeile im Menü zeigt, was gerade gilt.",
+    "aliases": ["Boss-Fortschritt"],
+    "see": ["gc.serverrules"]
+  },
+  "gc.kern.modcheck": {
+    "title": "Mod-Abgleich",
+    "short": "Vergleicht beim Verbinden deine Mods mit denen des Servers und zeigt, was dir fehlt oder abweicht.",
+    "body": "Ein Server mit [[gc.kern|GC-Kern]] schickt beim Verbinden seine Mod-Liste. Scheitert die Verbindung, zeigt das Hauptmenü ein Fenster mit den Mods, die dir fehlen, die eine andere Version haben und die nur bei dir laufen (meist harmlos); ein Knopf kopiert die Liste, etwa für Discord. Fehlen dir nach dem Beitreten Mods des Servers, erscheint das Fenster einmal je Sitzung, und im Spiel öffnet es der Konsolenbefehl `modcheck`.\n\nBeide Anzeigen lassen sich einzeln abschalten; der Abgleich gilt nur für dich und ist gerade {gc_kern_modcheck}. Hat der Server ihn ausgeschaltet, gibt es kein Fenster.",
+    "aliases": ["Mod-Abgleich", "Mod-Vergleich"],
+    "see": ["gc.modswitch"]
+  },
+  "gc.kern.menukey": {
+    "title": "Taste für GC Option",
+    "short": "Eine eigene Taste öffnet und schließt das Menü GC Option; ohne Belegung geht es nur über den Knopf.",
+    "body": "Zum Belegen klickst du im Menü [[gc.option]] auf den Wert und drückst die gewünschte Taste, auch zusammen mit Umschalt, Strg oder Alt oder eine der Maustasten 3 bis 7; Rechtsklick entfernt die Belegung, Esc bricht ab. Die Taste wirkt im Hauptmenü und im Spiel, aber nicht im Chat, in der Konsole oder in anderen Textfeldern. Im Einzelspieler hält das Spiel an, solange das Menü offen ist. Die Belegung gilt nur für dich.",
+    "aliases": ["Taste für GC Option"]
+  }
+}

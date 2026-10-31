@@ -1,0 +1,18 @@
+{
+  "$locale": "en",
+  "gc.stackfix": {
+    "title": "Auto stack fix for ValheimPlus",
+    "short": "ValheimPlus auto stack also stores armor, jewelry and EpicLoot items; the hotbar stays protected.",
+    "body": "The mod adds two features: [[gc.stackfix.stackfix|storing armor, jewelry and EpicLoot materials]], which only works with ValheimPlus, and [[gc.stackfix.hotbar|hotbar protection]]. It belongs to the **ValheimPlusPlus** package ([[gc.kern.stufe|level]] 3 “Vanilla+”) and runs only on your side; if a server allows only a lower level, it is off there.\n\nSet it up in the [[gc.option|GC Option menu]]; the whole mod can be switched off on the [[gc.modswitch|Mods]] tab."
+  },
+  "gc.stackfix.stackfix": {
+    "title": "Store armor, jewelry and EpicLoot materials",
+    "short": "ValheimPlus auto stack puts armor, shields, jewelry and EpicLoot materials into matching chests again.",
+    "body": "If ValheimPlus is set to ignore equipment during auto stack, it skips every equippable item, so EpicLoot items never reach the chest, even if it holds the same item. With this feature armor, shields and jewelry, magic ones too, go into chests that hold the same item again. The same goes for EpicLoot materials such as dust, essences, reagents, runestones and shard stones, which ValheimPlus mistakes for ammo because of a tag.\n\nWeapons, tools, torches and real ammo still follow the ValheimPlus setting. Equipped items, the [[gc.stackfix.hotbar|hotbar]] if you like, and [[gc.schloesser.itemlock|locked items]] stay in your inventory."
+  },
+  "gc.stackfix.hotbar": {
+    "title": "Protect hotbar",
+    "short": "Items in the top inventory row are never stacked into chests.",
+    "body": "This applies to all stacking from your inventory into chests, with or without ValheimPlus: the “Place stacks” button, holding E at a chest and ValheimPlus auto stack. So tools, weapons and food on keys 1 to 8 stay with you. You protect single items anywhere with the [[gc.schloesser.itemlock|locks]]."
+  }
+}

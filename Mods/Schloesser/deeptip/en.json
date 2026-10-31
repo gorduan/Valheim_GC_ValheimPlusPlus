@@ -1,0 +1,42 @@
+{
+  "$locale": "en",
+  "gc.schloesser": {
+    "title": "Locks",
+    "short": "White and red locks for items and a lock that keeps chests away from ValheimPlus automation.",
+    "body": "The mod adds two features: [[gc.schloesser.itemlock|item locks]] with the [[gc.schloesser.white|white]] and the [[gc.schloesser.red|red lock]], and the [[gc.schloesser.chestlock|chest lock against automation]]. With EpicLoot the locks also protect at the [[gc.schloesser.epicloot|enchanting table]].\n\nIt belongs to the **ValheimPlusPlus** package ([[gc.kern.stufe|level]] 2 “Vanilla”). Item locks work with the mod on your side alone, the chest lock also needs it on the server; if the server has the mod, all players need it. Set it up in the [[gc.option|GC Option menu]].",
+    "see": ["gc.schloesser.itemlock_grave"]
+  },
+  "gc.schloesser.itemlock": {
+    "title": "Lock items",
+    "short": "Alt+left click puts a white lock on an item, Alt+right click a red one.",
+    "body": "Hold the lock key (currently {gc_schloesser_itemlock_key}) and click an item: left click sets or removes the [[gc.schloesser.white|white lock]], right click the [[gc.schloesser.red|red one]]. This works in your own inventory and in open chests, carts and ships; a lock icon in the corner of the slot and a line in the tooltip show it.\n\nLocked items keep their slot: stacking and “Take all” leave them alone, and after death they return [[gc.schloesser.itemlock_grave|to their slot]]. The lock survives saving, dropping, picking up and upgrading. With EpicLoot it also protects at the [[gc.schloesser.epicloot|enchanting table]]."
+  },
+  "gc.schloesser.white": {
+    "title": "White lock",
+    "short": "The item keeps its slot: it is not stored or sorted and returns to its slot after death.",
+    "body": "A white-locked item is not stacked into chests (place stacks, holding E, ValheimPlus auto stack) and stays put on “Take all” from chests and vehicles. Sorting and destroying leave it alone, and when you empty your tombstone it goes back [[gc.schloesser.itemlock_grave|to its old slot]].\n\nCrafting and building may use it; if that must never happen, use the [[gc.schloesser.red|red lock]]. By default new items of the same kind go into the white stack. At the EpicLoot enchanting table it is [[gc.schloesser.epicloot|protected]] but may pay costs there.",
+    "aliases": ["White lock"]
+  },
+  "gc.schloesser.red": {
+    "title": "Red lock",
+    "short": "Like the white lock, and crafting, upgrading and building never use the item, not even from chests.",
+    "body": "A red-locked item does not count for crafting, upgrading and building, not even through ValheimPlus “Craft from Chest”, and the amount display leaves it out. ValheimPlus machines such as smelters, ovens or fires do not take it from chests. Everything else is as with the [[gc.schloesser.white|white lock]].\n\nBy default new items of the same kind get their own stack; if they do go into the red stack, they are locked too. At the EpicLoot enchanting table red-locked items [[gc.schloesser.epicloot|never pay]].",
+    "aliases": ["Red lock"]
+  },
+  "gc.schloesser.epicloot": {
+    "title": "Locks at the enchanting table",
+    "short": "With EpicLoot, locked items are not offered for sacrifice, disenchanting, identifying or as a rune source.",
+    "body": "Every window of the EpicLoot enchanting table that uses up an item or takes something from it skips items with a [[gc.schloesser.white|white]] or [[gc.schloesser.red|red lock]]: sacrifice, disenchant, identify, rune extraction, and runes and set runes as a source. Enchanting and augmenting a locked item stay allowed, because the item is changed, not used up.\n\nPaying works as for crafting: white-locked items may pay costs, red-locked ones never. Without EpicLoot nothing changes."
+  },
+  "gc.schloesser.itemlock_grave": {
+    "title": "Back to their slot after death",
+    "short": "When you empty your own tombstone, locked items return to their slot.",
+    "body": "If something else lies in a locked item's slot, it moves to a free slot; if none is free, the two swap and the displaced item stays in the tombstone. Equipped items and quest items never go into the tombstone this way. A message says how many items came back and how many were moved; whatever no longer fits into your inventory stays in the tombstone like in vanilla."
+  },
+  "gc.schloesser.chestlock": {
+    "title": "Lock chests for automation",
+    "short": "Alt+L locks a chest for ValheimPlus machines, crafting from chests and auto stack.",
+    "body": "Look at a built chest and press Alt+L (adjustable): it is locked for automation, and a second press releases it. ValheimPlus then neither takes fuel or ore from it nor puts products into it, and does not use it for Craft from Chest and auto stack; the GC mods leave it alone too. The chest's hover text shows “Locked for automation”.\n\nThe lock is a [[gc.serverrules|server rule]] and needs the mod on the server as well; the menu only lists it with ValheimPlus.",
+    "aliases": ["Automation lock", "Locked for automation"]
+  }
+}

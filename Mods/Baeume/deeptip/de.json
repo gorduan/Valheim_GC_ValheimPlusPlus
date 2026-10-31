@@ -1,0 +1,29 @@
+{
+  "$locale": "de",
+  "gc.baeume": {
+    "title": "Bäume wachsen nach (Mod)",
+    "short": "Baumstümpfe wachsen nach der Wachstumszeit eines Setzlings wieder zum Baum.",
+    "body": "Die Mod lässt gefällte Bäume [[gc.baeume.treeregrow|nachwachsen]]: Der Stumpf wird nach der Wartezeit wieder zum selben Baum. Sie gehört zum Paket **ValheimPlusPlus** ([[gc.kern.stufe|Stufe]] 4 „GC leicht“), und Server und alle Spieler brauchen sie.\n\nSchalter und Wartezeiten sind [[gc.serverrules|Server-Regeln]]; nur die [[gc.baeume.treeregrowhover|Restzeit an Baumstümpfen]] stellst du selbst ein.",
+    "see": ["gc.baeume.treeregrow_override", "gc.baeume.treeregrow_spread"]
+  },
+  "gc.baeume.treeregrow": {
+    "title": "Bäume wachsen nach",
+    "short": "Baumstümpfe werden nach der Wachstumszeit ihres Setzlings wieder zum selben Baum.",
+    "body": "Wird ein Baum gefällt, merkt sich sein Stumpf, welcher Baum dort stand, und lässt ihn nach der Wartezeit mit Wachstumsanimation neu erscheinen. Die Wartezeit entspricht dem passenden Setzling im Spiel; Bäume ohne Setzling, etwa im [[valheim.biome.swamp|Sumpf]] oder in den [[valheim.biome.ashlands|Aschenlanden]], brauchen {gc_baeume_treeregrow_fallback}, und eine [[gc.baeume.treeregrow_override|feste Wartezeit]] ersetzt beides. Die Zeit läuft in Spielzeit und bleibt im Stumpf gespeichert, auch über Neustarts.\n\nRodest du den Stumpf oder baust etwas direkt darauf, wächst nichts nach. Stümpfe aus der Weltgenerierung bleiben Stümpfe."
+  },
+  "gc.baeume.treeregrow_override": {
+    "title": "Feste Wartezeit",
+    "short": "0 nimmt die Wachstumszeit des Setzlings; größer 0 gilt diese Spielzeit für alle Bäume.",
+    "body": "Zurzeit {gc_baeume_treeregrow_override}. Bei 0 wartet jeder Stumpf so lange wie der Setzling seines Baums; ändert eine andere Mod diese Zeit, gilt deren Wert. Größer 0 gilt die Zeit für alle Bäume, auch die ohne Setzling; ein Valheim-Tag dauert 30 Minuten. Feste Zeiten streuen um die [[gc.baeume.treeregrow_spread|zufällige Abweichung]]."
+  },
+  "gc.baeume.treeregrow_spread": {
+    "title": "Zufällige Abweichung",
+    "short": "Streut feste Wartezeiten, damit nicht alle Bäume gleichzeitig nachwachsen.",
+    "body": "Zurzeit {gc_baeume_treeregrow_spread}; 0,25 heißt plus oder minus 25 %. Sie gilt für die [[gc.baeume.treeregrow_override|feste Wartezeit]] und die Wartezeit ohne Setzling, denn die Zeiten der Setzlinge haben schon ihre eigene Spanne."
+  },
+  "gc.baeume.treeregrowhover": {
+    "title": "Restzeit an Baumstümpfen",
+    "short": "Der Hover-Text eines Stumpfs zeigt, wann der Baum nachwächst.",
+    "body": "Schaust du auf einen Stumpf, steht dort wie bei Pflanzen sein Stand: die Restzeit, „wächst gleich nach“ oder „Bauteil im Weg, wächst nicht nach“. Stümpfe, die nicht [[gc.baeume.treeregrow|nachwachsen]], zeigen nichts davon. Diese Anzeige stellst du für dich selbst ein."
+  }
+}

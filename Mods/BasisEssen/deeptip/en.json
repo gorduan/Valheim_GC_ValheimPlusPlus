@@ -1,0 +1,19 @@
+{
+  "$locale": "en",
+  "gc.basisessen": {
+    "title": "Less hunger at base (mod)",
+    "short": "Food runs out more slowly at a workbench and inside a ward.",
+    "body": "The mod brings [[gc.basisessen.basefood|less hunger at base]]: within range of a workbench or an active ward your food lasts longer. It belongs to the **ValheimPlusPlus** package ([[gc.kern.stufe|level]] 4 “GC light”); the server and all players need it, and all its values are [[gc.serverrules|server rules]].\n\nBecause it makes the game easier, it adds a compensation of 1 % per defeated boss to the [[gc.kern.bossscale|boss progression]] while it is switched on; the highest value of all running mods counts.",
+    "see": ["gc.basisessen.basefood_access"]
+  },
+  "gc.basisessen.basefood": {
+    "title": "Less hunger at base",
+    "short": "Food lasts longer within range of a workbench or an active ward.",
+    "body": "Within the build radius of a [[valheim.station.workbench|workbench]] your hunger loss drops by {gc_basisessen_basefood_workbench}, so your [[valheim.food.food|food]] lasts longer; inside an active ward it drops by {gc_basisessen_basefood_ward}. 100 % means no hunger loss at all, and if you stand in both areas, the larger value counts.\n\nBy default only the workbench counts as a station, and only wards you have [[gc.basisessen.basefood_access|access]] to. Other mods that change food duration, such as ValheimPlus, keep working; the saving comes on top."
+  },
+  "gc.basisessen.basefood_access": {
+    "title": "Only wards with access",
+    "short": "Only your own or permitted wards reduce hunger.",
+    "body": "On: only an active ward you have access to counts, meaning your own or one you are permitted on. Off: every active ward counts, also someone else's. The setting is a [[gc.serverrules|server rule]]."
+  }
+}

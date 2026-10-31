@@ -3,9 +3,11 @@
     Copy this file to GamePaths.user.props (ignored by git) and set your paths.
     GamePath: your Valheim folder with BepInEx installed (BepInEx\core\BepInEx.dll and valheim_Data\Managed must exist).
     JotunnDll: Jotunn.dll from the ValheimModding-Jotunn package (for example from an r2modman profile).
+    DeepTipDll: GC_Valheim_DeepTip.dll from the Gorduan-DeepTip package (since 1.9.0 every GC package needs DeepTip).
   -->
   <PropertyGroup>
     <GamePath>C:\Program Files (x86)\Steam\steamapps\common\Valheim</GamePath>
     <JotunnDll>C:\Program Files (x86)\Steam\steamapps\common\Valheim\BepInEx\plugins\ValheimModding-Jotunn\Jotunn.dll</JotunnDll>
+    <DeepTipDll>C:\Program Files (x86)\Steam\steamapps\common\Valheim\BepInEx\plugins\Gorduan-DeepTip\GC_Valheim_DeepTip.dll</DeepTipDll>
   </PropertyGroup>
 </Project>
